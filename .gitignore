@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.vercel
+.npm-cache
+.npmrc
+AGENTS.md
+dist
+node_modules
+npm-debug.log*
