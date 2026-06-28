@@ -1018,8 +1018,13 @@ function getFacebookShareUrl(org) {
 
 async function copyShareUrl(url) {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(url);
-    return true;
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      // Some browsers expose the Clipboard API but block it outside secure contexts.
+      // Fall back to a temporary textarea so the button still works in previews.
+    }
   }
 
   const input = document.createElement("textarea");
@@ -1029,7 +1034,12 @@ async function copyShareUrl(url) {
   input.style.opacity = "0";
   document.body.appendChild(input);
   input.select();
-  const copied = document.execCommand("copy");
+  let copied = false;
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
   document.body.removeChild(input);
   return copied;
 }
