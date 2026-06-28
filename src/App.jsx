@@ -142,7 +142,7 @@ const copy = {
       password: "Password",
       unlock: "Sign in",
       error: "Login failed. Check the email, password, and editor access.",
-      note: "Supabase login is active when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are configured. Without them, local testing uses the temporary password.",
+      note: "Supabase login is active when Supabase environment variables are configured. Without them, local testing uses the temporary password.",
       localNote: "Local testing mode. Set Supabase environment variables before deploying private editing.",
       logout: "Sign out",
       modeLocal: "Local CMS",
@@ -255,7 +255,7 @@ const copy = {
       password: "Clave",
       unlock: "Ingresar",
       error: "No se pudo ingresar. Revisa email, clave y acceso editorial.",
-      note: "El login de Supabase se activa cuando VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estan configuradas. Sin eso, el modo local usa la clave temporal.",
+      note: "El login de Supabase se activa cuando las variables de Supabase estan configuradas. Sin eso, el modo local usa la clave temporal.",
       localNote: "Modo local de prueba. Configura Supabase antes de publicar edicion privada.",
       logout: "Salir",
       modeLocal: "CMS local",
@@ -306,8 +306,13 @@ const ADMIN_SESSION_KEY = "venezuela-relief-admin-session";
 const SUPABASE_SESSION_KEY = "venezuela-relief-supabase-session";
 const LOCAL_SUBMISSIONS_KEY = "venezuela-relief-local-submissions";
 const ADMIN_PASSWORD = "venezuela-relief";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "";
 const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const appToDbTrust = {
