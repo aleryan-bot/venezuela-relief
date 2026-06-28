@@ -42,6 +42,10 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 The public site reads approved organizations. Signed-in editors can read, create, update, and delete organizations.
 
+## Public Suggestions
+
+The `Add organization` form writes suggestions to the Supabase `submissions` table when Supabase is configured. Without Supabase, suggestions are saved in the browser for local testing.
+
 ## Likes And Popularity
 
 Liked organizations persist in the visitor's browser and influence local sorting. Global popularity across all visitors requires Supabase; the database schema includes an `organization_likes` table and `organization_popularity` view for that next step.

@@ -152,12 +152,15 @@ const copy = {
       submitter: "Who is submitting this information?",
       submitterEmail: "Submitter email",
       name: "Organization name",
+      website: "Organization website",
       logo: "Organization logo URL",
       link: "Donation or sign-up link",
       help: "Type of help",
       region: "Who can use it?",
       trust: "Why do you trust them?",
+      sources: "Source links or notes",
       sent: "Thank you. This suggestion is ready for review before publishing.",
+      error: "We could not save this suggestion. Please try again.",
     },
   },
   es: {
@@ -262,12 +265,15 @@ const copy = {
       submitter: "Quien envia esta informacion?",
       submitterEmail: "Email de quien envia",
       name: "Nombre de la organizacion",
+      website: "Sitio web de la organizacion",
       logo: "URL del logo de la organizacion",
       link: "Enlace de donacion o registro",
       help: "Tipo de ayuda",
       region: "Quien puede usarlo?",
       trust: "Por que confias en ellos?",
+      sources: "Fuentes o notas",
       sent: "Gracias. Esta sugerencia queda lista para revision antes de publicar.",
+      error: "No pudimos guardar esta sugerencia. Intentalo de nuevo.",
     },
   },
 };
@@ -298,6 +304,7 @@ const trustLabels = {
 const CONTENT_KEY = "venezuela-relief-organizations-v1";
 const ADMIN_SESSION_KEY = "venezuela-relief-admin-session";
 const SUPABASE_SESSION_KEY = "venezuela-relief-supabase-session";
+const LOCAL_SUBMISSIONS_KEY = "venezuela-relief-local-submissions";
 const ADMIN_PASSWORD = "venezuela-relief";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -1216,6 +1223,40 @@ async function deleteSupabaseOrganization(org, token) {
   });
 }
 
+function getSubmissionPayload(form) {
+  const data = new FormData(form);
+  return {
+    submitter_name: data.get("submitter_name")?.toString().trim() || null,
+    submitter_email: data.get("submitter_email")?.toString().trim() || null,
+    organization_name: data.get("organization_name")?.toString().trim() || "",
+    organization_url: data.get("organization_url")?.toString().trim() || null,
+    organization_logo_url: data.get("organization_logo_url")?.toString().trim() || null,
+    donation_or_signup_url: data.get("donation_or_signup_url")?.toString().trim() || null,
+    help_type: data.get("help_type")?.toString().trim() || "",
+    donor_region: data.get("donor_region")?.toString().trim() || null,
+    trust_reason: data.get("trust_reason")?.toString().trim() || "",
+    source_links: data.get("source_links")?.toString().trim() || null,
+    status: "new",
+  };
+}
+
+async function createSubmission(payload) {
+  if (HAS_SUPABASE) {
+    await supabaseRequest("/rest/v1/submissions", {
+      method: "POST",
+      body: payload,
+      prefer: "return=minimal",
+    });
+    return;
+  }
+
+  const stored = JSON.parse(window.localStorage.getItem(LOCAL_SUBMISSIONS_KEY) || "[]");
+  window.localStorage.setItem(
+    LOCAL_SUBMISSIONS_KEY,
+    JSON.stringify([{ ...payload, created_at: new Date().toISOString() }, ...stored]),
+  );
+}
+
 function getDonateLink(org) {
   const links = org.details?.links || [];
 
@@ -1603,6 +1644,8 @@ function InfoPage({ page, lang }) {
   const isSubmit = page === "submit";
   const isAbout = page === "about";
   const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const title = t.pages[`${page}Title`];
   const text = t.pages[`${page}Text`];
 
@@ -1616,47 +1659,67 @@ function InfoPage({ page, lang }) {
       {isSubmit ? (
         <form
           className="submit-form"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            setSent(true);
+            setIsSending(true);
+            setSubmitError(false);
+            try {
+              await createSubmission(getSubmissionPayload(event.currentTarget));
+              event.currentTarget.reset();
+              setSent(true);
+            } catch {
+              setSent(false);
+              setSubmitError(true);
+            } finally {
+              setIsSending(false);
+            }
           }}
         >
           <label>
             {t.form.submitter}
-            <input required />
+            <input name="submitter_name" required />
           </label>
           <label>
             {t.form.submitterEmail}
-            <input required type="email" />
+            <input name="submitter_email" required type="email" />
           </label>
           <label>
             {t.form.name}
-            <input required />
+            <input name="organization_name" required />
           </label>
           <label>
             {t.form.logo}
-            <input type="url" placeholder="https://" />
+            <input name="organization_logo_url" type="url" placeholder="https://" />
+          </label>
+          <label>
+            {t.form.website}
+            <input name="organization_url" type="url" placeholder="https://" />
           </label>
           <label>
             {t.form.link}
-            <input required type="url" placeholder="https://" />
+            <input name="donation_or_signup_url" required type="url" placeholder="https://" />
           </label>
           <label>
             {t.form.help}
-            <input required />
+            <input name="help_type" required />
           </label>
           <label>
             {t.form.region}
-            <input required />
+            <input name="donor_region" required />
           </label>
           <label>
             {t.form.trust}
-            <textarea required rows="5" />
+            <textarea name="trust_reason" required rows="5" />
           </label>
-          <button className="primary-button" type="submit">
+          <label>
+            {t.form.sources}
+            <textarea name="source_links" rows="4" />
+          </label>
+          <button className="primary-button" disabled={isSending} type="submit">
             {t.actions.submit}
           </button>
           {sent ? <p className="success">{t.form.sent}</p> : null}
+          {submitError ? <p className="form-error">{t.form.error}</p> : null}
         </form>
       ) : isAbout ? (
         <div className="info-grid">
