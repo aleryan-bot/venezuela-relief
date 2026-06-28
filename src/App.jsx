@@ -11,11 +11,11 @@ import {
   Heart,
   HeartHandshake,
   Link as LinkIcon,
+  Lock,
   MapPin,
   PackageOpen,
   PawPrint,
   Search,
-  Share2,
   ShieldCheck,
   Stethoscope,
   Truck,
@@ -103,7 +103,9 @@ const copy = {
       donateNow: "Donate now",
       like: "Like organization",
       liked: "Liked",
-      share: "Share organization",
+      copyLink: "Copy link",
+      facebook: "Facebook",
+      share: "Share",
       copied: "Link copied",
       submit: "Add organization",
       clear: "Clear",
@@ -120,9 +122,27 @@ const copy = {
       verifyTitle: "How listings should be verified",
       verifyText:
         "A listing should show a current source, a clear aid route, a direct donation or sign-up link, and a last-checked date before it is promoted.",
+      aboutTitle: "About us",
+      aboutText:
+        "Venezuela Relief is a volunteer-built directory created to make emergency giving easier to understand. Our goal is to help donors compare relief options, see source links, and make safer decisions before donating.",
       submitTitle: "Add organization",
       submitText:
         "Add an organization for review. It will not appear publicly until sources, help type, and donation routes are checked.",
+    },
+    footer: {
+      about: "About us",
+      abroad: "For donors abroad",
+      verify: "Verification process",
+      admin: "CMS login",
+    },
+    admin: {
+      lockedTitle: "CMS login",
+      lockedText: "Enter the editor password to update organizations.",
+      password: "Password",
+      unlock: "Unlock CMS",
+      error: "Password not recognized.",
+      note: "For launch, this protects the editing screen on this device. Production editing should use Supabase login.",
+      logout: "Lock CMS",
     },
     form: {
       submitter: "Who is submitting this information?",
@@ -189,7 +209,9 @@ const copy = {
       donateNow: "Donar ahora",
       like: "Guardar organizacion",
       liked: "Guardada",
-      share: "Compartir organizacion",
+      copyLink: "Copiar enlace",
+      facebook: "Facebook",
+      share: "Compartir",
       copied: "Enlace copiado",
       submit: "Agregar organizacion",
       clear: "Limpiar",
@@ -206,9 +228,27 @@ const copy = {
       verifyTitle: "Como verificar una opcion",
       verifyText:
         "Cada opcion debe tener fuente reciente, ruta de ayuda clara, enlace directo y fecha de ultima revision.",
+      aboutTitle: "Sobre nosotros",
+      aboutText:
+        "Venezuela Relief es un directorio voluntario creado para que donar en una emergencia sea mas claro. La meta es ayudar a comparar opciones, revisar fuentes y tomar decisiones mas seguras antes de donar.",
       submitTitle: "Agregar organizacion",
       submitText:
         "Agrega una organizacion para revision. No aparecera publicamente hasta verificar fuentes, tipo de ayuda y ruta de donacion.",
+    },
+    footer: {
+      about: "Sobre nosotros",
+      abroad: "Donantes afuera",
+      verify: "Verificacion",
+      admin: "CMS",
+    },
+    admin: {
+      lockedTitle: "Ingreso CMS",
+      lockedText: "Ingresa la clave editorial para actualizar organizaciones.",
+      password: "Clave",
+      unlock: "Abrir CMS",
+      error: "Clave no reconocida.",
+      note: "Para lanzamiento, esto protege la pantalla de edicion en este dispositivo. En produccion debe usarse login con Supabase.",
+      logout: "Cerrar CMS",
     },
     form: {
       submitter: "Quien envia esta informacion?",
@@ -248,6 +288,8 @@ const trustLabels = {
 };
 
 const CONTENT_KEY = "venezuela-relief-organizations-v1";
+const ADMIN_SESSION_KEY = "venezuela-relief-admin-session";
+const ADMIN_PASSWORD = "venezuela-relief";
 
 const defaultOrganizations = [
   {
@@ -826,6 +868,7 @@ function OrganizationMark({ org }) {
 }
 
 const FAVORITES_KEY = "venezuela-relief-liked-organizations";
+const POPULARITY_KEY = "venezuela-relief-local-popularity";
 
 function splitList(value) {
   return value
@@ -968,6 +1011,11 @@ function getShareUrl(org) {
   return url.toString();
 }
 
+function getFacebookShareUrl(org) {
+  const url = encodeURIComponent(getShareUrl(org));
+  return `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+}
+
 async function copyShareUrl(url) {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(url);
@@ -990,6 +1038,14 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
   const t = copy[lang];
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState("");
+  const [popularity, setPopularity] = useState(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(window.localStorage.getItem(POPULARITY_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  });
   const [likedIds, setLikedIds] = useState(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -1003,6 +1059,10 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
     window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(likedIds));
   }, [likedIds]);
 
+  useEffect(() => {
+    window.localStorage.setItem(POPULARITY_KEY, JSON.stringify(popularity));
+  }, [popularity]);
+
   function handleSelect(orgId) {
     setSelectedId(orgId);
     if (typeof window !== "undefined") {
@@ -1013,26 +1073,18 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
   }
 
   function toggleLiked(orgId) {
-    setLikedIds((current) =>
-      current.includes(orgId)
-        ? current.filter((id) => id !== orgId)
-        : [...current, orgId],
-    );
+    setLikedIds((current) => {
+      const isLiked = current.includes(orgId);
+      setPopularity((counts) => ({
+        ...counts,
+        [orgId]: Math.max(0, (counts[orgId] || 0) + (isLiked ? -1 : 1)),
+      }));
+      return isLiked ? current.filter((id) => id !== orgId) : [...current, orgId];
+    });
   }
 
-  async function shareOrg(org) {
+  async function copyOrgLink(org) {
     const url = getShareUrl(org);
-    const text = `${org.name} - ${getOrgText(org, "help", lang)}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: org.name, text, url });
-        return;
-      } catch {
-        // Fall through to copy when the share sheet is dismissed or unavailable.
-      }
-    }
-
     if (await copyShareUrl(url)) {
       setCopiedId(org.id);
       window.setTimeout(() => setCopiedId(""), 1800);
@@ -1057,8 +1109,12 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
           .toLowerCase();
         return matchesFilter && (!normalized || haystack.includes(normalized));
       })
-      .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.name.localeCompare(b.name));
-  }, [lang, organizations, query, selectedFilter]);
+      .sort((a, b) => {
+        const scoreA = (a.priority || 0) + (popularity[a.id] || 0) * 3;
+        const scoreB = (b.priority || 0) + (popularity[b.id] || 0) * 3;
+        return scoreB - scoreA || a.name.localeCompare(b.name);
+      });
+  }, [lang, organizations, popularity, query, selectedFilter]);
 
   const selected =
     shown.find((org) => org.id === selectedId) || shown[0] || organizations[0];
@@ -1168,12 +1224,22 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
                     <button
                       className="tool-button"
                       type="button"
-                      aria-label={t.actions.share}
-                      title={copiedId === org.id ? t.actions.copied : t.actions.share}
-                      onClick={() => shareOrg(org)}
+                      aria-label={t.actions.copyLink}
+                      title={copiedId === org.id ? t.actions.copied : t.actions.copyLink}
+                      onClick={() => copyOrgLink(org)}
                     >
-                      <Share2 aria-hidden="true" />
+                      <LinkIcon aria-hidden="true" />
                     </button>
+                    <a
+                      className="tool-button facebook-button"
+                      href={getFacebookShareUrl(org)}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`${t.actions.facebook}: ${org.name}`}
+                      title={t.actions.facebook}
+                    >
+                      f
+                    </a>
                   </span>
                 </span>
                 <span className="org-cell donate-cell">
@@ -1217,12 +1283,22 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
               <button
                 className="icon-button"
                 type="button"
-                aria-label={t.actions.share}
-                title={copiedId === selected.id ? t.actions.copied : t.actions.share}
-                onClick={() => shareOrg(selected)}
+                aria-label={t.actions.copyLink}
+                title={copiedId === selected.id ? t.actions.copied : t.actions.copyLink}
+                onClick={() => copyOrgLink(selected)}
               >
-                <Share2 aria-hidden="true" />
+                <LinkIcon aria-hidden="true" />
               </button>
+              <a
+                className="icon-button facebook-button"
+                href={getFacebookShareUrl(selected)}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${t.actions.facebook}: ${selected.name}`}
+                title={t.actions.facebook}
+              >
+                f
+              </a>
               <button
                 className="icon-button"
                 type="button"
@@ -1293,6 +1369,7 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
 function InfoPage({ page, lang }) {
   const t = copy[lang];
   const isSubmit = page === "submit";
+  const isAbout = page === "about";
   const [sent, setSent] = useState(false);
   const title = t.pages[`${page}Title`];
   const text = t.pages[`${page}Text`];
@@ -1349,6 +1426,27 @@ function InfoPage({ page, lang }) {
           </button>
           {sent ? <p className="success">{t.form.sent}</p> : null}
         </form>
+      ) : isAbout ? (
+        <div className="info-grid">
+          <article>
+            <ShieldCheck aria-hidden="true" />
+            <h2>{lang === "en" ? "Trust first" : "Confianza primero"}</h2>
+            <p>
+              {lang === "en"
+                ? "Listings should make tax status, source links, aid route, and current review status easy to see."
+                : "Cada opcion debe mostrar estado fiscal, fuentes, ruta de ayuda y estado de revision de forma clara."}
+            </p>
+          </article>
+          <article>
+            <HeartHandshake aria-hidden="true" />
+            <h2>{lang === "en" ? "Built for action" : "Hecho para actuar"}</h2>
+            <p>
+              {lang === "en"
+                ? "The directory is designed so people can compare options quickly and donate through official links."
+                : "El directorio ayuda a comparar opciones rapido y donar mediante enlaces oficiales."}
+            </p>
+          </article>
+        </div>
       ) : (
         <div className="info-grid">
           {helpCards.map(([id, titleEn, description]) => {
@@ -1368,7 +1466,50 @@ function InfoPage({ page, lang }) {
   );
 }
 
-function AdminPage({ organizations, setOrganizations }) {
+function AdminLogin({ lang, onUnlock }) {
+  const t = copy[lang];
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+
+  return (
+    <section className="admin-login" aria-label={t.admin.lockedTitle}>
+      <form
+        className="login-card"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (password === ADMIN_PASSWORD) {
+            setError(false);
+            onUnlock();
+            return;
+          }
+          setError(true);
+        }}
+      >
+        <Lock aria-hidden="true" />
+        <p className="eyebrow">Private content tools</p>
+        <h1>{t.admin.lockedTitle}</h1>
+        <p>{t.admin.lockedText}</p>
+        <label>
+          {t.admin.password}
+          <input
+            autoComplete="current-password"
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            value={password}
+          />
+        </label>
+        <button className="primary-button" type="submit">
+          {t.admin.unlock}
+        </button>
+        {error ? <p className="form-error">{t.admin.error}</p> : null}
+        <p className="login-note">{t.admin.note}</p>
+      </form>
+    </section>
+  );
+}
+
+function AdminPage({ organizations, setOrganizations, lang, onLock }) {
+  const t = copy[lang];
   const [selectedId, setSelectedId] = useState(organizations[0]?.id || "");
   const selected = organizations.find((org) => org.id === selectedId) || organizations[0];
   const [draft, setDraft] = useState(() => getEditorDraft(selected || defaultOrganizations[0]));
@@ -1551,6 +1692,9 @@ function AdminPage({ organizations, setOrganizations }) {
               <p>{draft.status} / priority {draft.priority}</p>
             </div>
             <div className="admin-editor-actions">
+              <button className="secondary-button" type="button" onClick={onLock}>
+                {t.admin.logout}
+              </button>
               <button className="secondary-button" type="button" onClick={duplicateOrganization}>
                 Duplicate
               </button>
@@ -1700,16 +1844,60 @@ function AdminPage({ organizations, setOrganizations }) {
   );
 }
 
+function SiteFooter({ lang, setView }) {
+  const t = copy[lang];
+  const links = [
+    ["about", t.footer.about],
+    ["abroad", t.footer.abroad],
+    ["verify", t.footer.verify],
+    ["admin", t.footer.admin],
+  ];
+
+  return (
+    <footer className="site-footer">
+      <div>
+        <strong>{t.brand}</strong>
+        <p>
+          {lang === "en"
+            ? "A clear directory for comparing Venezuela relief options before donating."
+            : "Un directorio claro para comparar opciones de ayuda a Venezuela antes de donar."}
+        </p>
+      </div>
+      <nav className="footer-nav" aria-label="Footer navigation">
+        {links.map(([view, label]) => (
+          <button key={view} type="button" onClick={() => setView(view)}>
+            {label}
+          </button>
+        ))}
+      </nav>
+    </footer>
+  );
+}
+
 export function App() {
   const [organizations, setOrganizations] = useEditableOrganizations();
   const [lang, setLang] = useState("en");
   const [view, setView] = useState("directory");
+  const [adminUnlocked, setAdminUnlocked] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked";
+  });
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(() => {
     if (typeof window === "undefined") return "direct-relief";
     return new URLSearchParams(window.location.search).get("org") || "direct-relief";
   });
   const t = copy[lang];
+
+  function unlockAdmin() {
+    window.sessionStorage.setItem(ADMIN_SESSION_KEY, "unlocked");
+    setAdminUnlocked(true);
+  }
+
+  function lockAdmin() {
+    window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    setAdminUnlocked(false);
+  }
 
   return (
     <main>
@@ -1722,7 +1910,7 @@ export function App() {
           </span>
         </button>
         <nav aria-label="Primary navigation">
-          {["directory", "ways", "abroad", "verify", "submit", "admin"].map((item) => (
+          {["directory", "ways", "submit"].map((item) => (
             <button
               className={view === item ? "is-current" : ""}
               key={item}
@@ -1757,10 +1945,20 @@ export function App() {
           setSelectedId={setSelectedId}
         />
       ) : view === "admin" ? (
-        <AdminPage organizations={organizations} setOrganizations={setOrganizations} />
+        adminUnlocked ? (
+          <AdminPage
+            organizations={organizations}
+            setOrganizations={setOrganizations}
+            lang={lang}
+            onLock={lockAdmin}
+          />
+        ) : (
+          <AdminLogin lang={lang} onUnlock={unlockAdmin} />
+        )
       ) : (
         <InfoPage page={view} lang={lang} />
       )}
+      <SiteFooter lang={lang} setView={setView} />
     </main>
   );
 }

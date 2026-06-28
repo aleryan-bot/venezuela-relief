@@ -33,6 +33,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -588,6 +589,14 @@ nav button.is-current {
   fill: currentColor;
 }
 
+.facebook-button {
+  color: #1877f2;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: none;
+}
+
 .donate-cell {
   align-items: center;
   display: flex;
@@ -807,6 +816,81 @@ dd {
   font-size: 14px;
   font-weight: 750;
   margin: 0;
+  padding: 12px;
+}
+
+.form-error {
+  background: #fff1f1;
+  border-radius: 8px;
+  color: #b42318;
+  font-size: 14px;
+  font-weight: 750;
+  margin: 0;
+  padding: 12px;
+}
+
+.admin-login {
+  display: grid;
+  margin: 0 auto;
+  max-width: 620px;
+  min-height: 56vh;
+  padding: 72px 40px;
+  place-items: center;
+}
+
+.login-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 30px;
+  width: 100%;
+}
+
+.login-card > svg {
+  color: var(--blue);
+  height: 30px;
+  width: 30px;
+}
+
+.login-card h1 {
+  font-size: 34px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.login-card p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.login-card label {
+  color: #344054;
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.login-card input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  outline: 0;
+  padding: 12px 13px;
+}
+
+.login-card input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.12);
+}
+
+.login-note {
+  background: #f6f8fb;
+  border-radius: 8px;
   padding: 12px;
 }
 
@@ -1064,6 +1148,55 @@ dd {
   padding-top: 18px;
 }
 
+.site-footer {
+  align-items: start;
+  background: #101828;
+  color: white;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-top: 18px;
+  padding: 32px 48px;
+}
+
+.site-footer strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.site-footer p {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 560px;
+}
+
+.footer-nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  height: auto;
+  justify-content: flex-end;
+}
+
+.footer-nav button {
+  background: transparent;
+  border: 0;
+  color: #e5edf8;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 720;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.footer-nav button:hover {
+  color: white;
+}
+
 @media (max-width: 1120px) {
   .site-header {
     grid-template-columns: 1fr auto;
@@ -1107,7 +1240,9 @@ dd {
   .filters,
   .workspace,
   .info-page,
-  .admin-page {
+  .admin-page,
+  .admin-login,
+  .site-footer {
     padding-left: 20px;
     padding-right: 20px;
   }
@@ -1176,5 +1311,13 @@ dd {
 
   .admin-editor-head {
     display: grid;
+  }
+
+  .site-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-nav {
+    justify-content: flex-start;
   }
 }
