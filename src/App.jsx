@@ -977,6 +977,10 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
               <article
                 className={`org-row ${selected.id === org.id ? "is-selected" : ""}`}
                 key={org.id}
+                onClick={(event) => {
+                  if (event.target.closest("a, button")) return;
+                  handleSelect(org.id);
+                }}
               >
                 <span className="org-cell org-name">
                   <OrganizationMark org={org} />

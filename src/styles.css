@@ -333,6 +333,7 @@ nav button.is-current {
   align-items: center;
   background: white;
   border-bottom: 1px solid var(--line);
+  cursor: pointer;
   min-height: 124px;
   padding: 24px 28px;
   text-align: left;
