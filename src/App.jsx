@@ -63,8 +63,8 @@ const copy = {
     },
     heroTitle: "Verified ways to help Venezuela",
     heroText:
-      "Compare donation, supply, volunteer, and community efforts with clear source links.",
-    lastUpdated: "Last updated June 27, 2026",
+      "Compare donation, supply, volunteer, and community efforts with transparent, cross-referenced source links. Institutional transparency for critical aid.",
+    lastUpdated: "Global humanitarian response",
     availableTo: "Available to",
     filters: {
       all: "All",
@@ -77,7 +77,7 @@ const copy = {
       animal: "Animal help",
       tax: "US tax-deductible",
     },
-    search: "Search by organization, help type, or region",
+    search: "Search by organization, help type, or region...",
     table: {
       org: "Organization",
       help: "Help provided",
@@ -176,8 +176,8 @@ const copy = {
     },
     heroTitle: "Formas verificadas de ayudar a Venezuela",
     heroText:
-      "Compara donaciones, insumos, voluntariado y esfuerzos comunitarios con fuentes claras.",
-    lastUpdated: "Actualizado el 27 de junio de 2026",
+      "Compara donaciones, insumos, voluntariado y esfuerzos comunitarios con fuentes transparentes y cruzadas. Transparencia institucional para ayuda critica.",
+    lastUpdated: "Respuesta humanitaria global",
     availableTo: "Disponible para",
     filters: {
       all: "Todo",
@@ -190,7 +190,7 @@ const copy = {
       animal: "Ayuda animal",
       tax: "Deducible en EEUU",
     },
-    search: "Buscar por organizacion, ayuda o region",
+    search: "Buscar por organizacion, ayuda o region...",
     table: {
       org: "Organizacion",
       help: "Tipo de ayuda",
