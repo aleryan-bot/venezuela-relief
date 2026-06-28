@@ -292,9 +292,9 @@ nav button.is-current {
 .workspace {
   display: grid;
   gap: 20px;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   margin: 0 auto;
-  max-width: 1440px;
+  max-width: 1540px;
   padding: 0 40px 60px;
 }
 
@@ -312,13 +312,14 @@ nav button.is-current {
 
 .listing-head,
 .org-row {
-  column-gap: 28px;
+  column-gap: 16px;
   display: grid;
   grid-template-columns:
-    minmax(170px, 1.1fr)
-    minmax(0, 2fr)
-    188px
-    126px;
+    minmax(150px, 1.05fr)
+    minmax(210px, 1.8fr)
+    minmax(154px, 0.8fr)
+    minmax(136px, 0.7fr)
+    minmax(154px, 0.8fr);
 }
 
 .listing-head {
@@ -334,13 +335,10 @@ nav button.is-current {
 .org-row {
   align-items: center;
   background: white;
-  border: 0;
   border-bottom: 1px solid var(--line);
-  cursor: pointer;
   min-height: 124px;
   padding: 24px 28px;
   text-align: left;
-  width: 100%;
 }
 
 .org-row:last-of-type {
@@ -501,27 +499,101 @@ nav button.is-current {
   color: var(--blue-dark);
 }
 
-.row-action {
+.action-cell {
   align-items: center;
-  background: #edf4ff;
-  border: 1px solid #c7d7fe;
+  display: grid;
+  gap: 10px;
+}
+
+.row-action,
+.donate-button,
+.detail-donate {
+  align-items: center;
   border-radius: 8px;
-  color: var(--blue);
-  display: flex;
+  display: inline-flex;
   font-size: 13px;
   font-weight: 780;
   gap: 8px;
   justify-content: center;
   min-height: 40px;
-  min-width: 124px;
   padding: 9px 10px;
   white-space: nowrap;
-  width: fit-content;
 }
 
-.row-action svg {
+.row-action {
+  background: #edf4ff;
+  border: 1px solid #c7d7fe;
+  color: var(--blue);
+  cursor: pointer;
+  width: 100%;
+}
+
+.row-action svg,
+.donate-button svg,
+.detail-donate svg {
   height: 16px;
   width: 16px;
+}
+
+.row-tools {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.tool-button {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #667085;
+  cursor: pointer;
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.tool-button:hover,
+.icon-button:hover {
+  background: #f2f4f7;
+}
+
+.tool-button svg {
+  height: 17px;
+  width: 17px;
+}
+
+.tool-button.is-liked,
+.icon-button.is-liked {
+  background: var(--green-bg);
+  border-color: #b9ebce;
+  color: var(--green);
+}
+
+.tool-button.is-liked svg,
+.icon-button.is-liked svg {
+  fill: currentColor;
+}
+
+.donate-cell {
+  align-items: center;
+  display: flex;
+}
+
+.donate-button,
+.detail-donate {
+  background: var(--green);
+  border: 1px solid var(--green);
+  color: white;
+  font-weight: 820;
+  width: 100%;
+}
+
+.donate-button:hover,
+.detail-donate:hover {
+  background: #06693c;
+  border-color: #06693c;
 }
 
 .result-count {
@@ -549,7 +621,7 @@ nav button.is-current {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .details h2 {
@@ -561,7 +633,7 @@ nav button.is-current {
 .icon-button {
   align-items: center;
   background: transparent;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 8px;
   color: #667085;
   cursor: pointer;
@@ -571,13 +643,20 @@ nav button.is-current {
   width: 36px;
 }
 
-.icon-button:hover {
-  background: #f2f4f7;
-}
-
 .icon-button svg {
   height: 22px;
   width: 22px;
+}
+
+.details-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.detail-donate {
+  margin-bottom: 24px;
+  min-height: 44px;
 }
 
 dl {

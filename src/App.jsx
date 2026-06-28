@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CalendarCheck,
@@ -8,11 +8,13 @@ import {
   FileText,
   Globe2,
   HandHeart,
+  Heart,
   HeartHandshake,
   Link as LinkIcon,
   MapPin,
   PackageOpen,
   Search,
+  Share2,
   ShieldCheck,
   Stethoscope,
   Truck,
@@ -67,6 +69,7 @@ const copy = {
       region: "Donor region",
       trust: "Trust level",
       action: "Action",
+      donate: "Donate",
     },
     detail: {
       what: "What they do",
@@ -82,6 +85,11 @@ const copy = {
     actions: {
       details: "View details",
       donate: "Donate",
+      donateNow: "Donate now",
+      like: "Like organization",
+      liked: "Liked",
+      share: "Share organization",
+      copied: "Link copied",
       submit: "Submit for review",
       clear: "Clear",
     },
@@ -144,6 +152,7 @@ const copy = {
       region: "Region del donante",
       trust: "Nivel de confianza",
       action: "Accion",
+      donate: "Donar",
     },
     detail: {
       what: "Que hacen",
@@ -159,6 +168,11 @@ const copy = {
     actions: {
       details: "Ver detalles",
       donate: "Donar",
+      donateNow: "Donar ahora",
+      like: "Guardar organizacion",
+      liked: "Guardada",
+      share: "Compartir organizacion",
+      copied: "Enlace copiado",
       submit: "Enviar a revision",
       clear: "Limpiar",
     },
@@ -226,6 +240,8 @@ const organizations = [
     categories: ["money", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 100,
+    priorityNote: "Top medical aid route with Venezuela-specific response page.",
     action: "Donate",
     details: {
       what: {
@@ -271,6 +287,8 @@ const organizations = [
     categories: ["money", "food", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 96,
+    priorityNote: "Top food-relief route with active field updates.",
     action: "Donate",
     details: {
       what: {
@@ -316,6 +334,8 @@ const organizations = [
     categories: ["money", "food", "medical", "volunteer", "europe"],
     regions: ["Venezuela", "Europe", "Global"],
     trust: "field",
+    priority: 92,
+    priorityNote: "Strong field route through Venezuelan Red Cross.",
     action: "Donate",
     details: {
       what: {
@@ -361,6 +381,8 @@ const organizations = [
     categories: ["money", "food", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 88,
+    priorityNote: "Child-focused emergency support.",
     action: "Donate",
     details: {
       what: {
@@ -406,6 +428,8 @@ const organizations = [
     categories: ["money", "food", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 86,
+    priorityNote: "Broad emergency response route.",
     action: "Donate",
     details: {
       what: {
@@ -451,6 +475,8 @@ const organizations = [
     categories: ["money", "medical", "food", "europe"],
     regions: ["Europe", "Global"],
     trust: "field",
+    priority: 72,
+    priorityNote: "Useful logistics route, not direct household aid.",
     action: "Details",
     details: {
       what: {
@@ -496,6 +522,8 @@ const organizations = [
     categories: ["money", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 80,
+    priorityNote: "Cash route with implementation caveats.",
     action: "Donate",
     details: {
       what: {
@@ -541,6 +569,8 @@ const organizations = [
     categories: ["money", "food", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 82,
+    priorityNote: "Child and family emergency support.",
     action: "Donate",
     details: {
       what: {
@@ -586,6 +616,8 @@ const organizations = [
     categories: ["money", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
+    priority: 84,
+    priorityNote: "Health-focused emergency supplies route.",
     action: "Donate",
     details: {
       what: {
@@ -631,6 +663,8 @@ const organizations = [
     categories: ["money", "food", "medical", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "field",
+    priority: 78,
+    priorityNote: "Caritas-linked route for faith communities.",
     action: "Donate",
     details: {
       what: {
@@ -679,6 +713,8 @@ const organizations = [
     categories: ["money", "food", "dropoff", "volunteer", "tax"],
     regions: ["US", "Miami", "Global"],
     trust: "verified",
+    priority: 76,
+    priorityNote: "Good for supply drives and Miami-area action.",
     action: "Donate",
     details: {
       what: {
@@ -756,26 +792,111 @@ function OrganizationMark({ org }) {
   return <span className={`org-mark ${org.mark}`}>{org.initials}</span>;
 }
 
+const FAVORITES_KEY = "venezuela-relief-liked-organizations";
+
+function getDonateLink(org) {
+  return (
+    org.details.links.find((link) => link.label.toLowerCase().includes("donate")) ||
+    org.details.links[org.details.links.length - 1]
+  );
+}
+
+function getShareUrl(org) {
+  if (typeof window === "undefined") return "";
+  const url = new URL(window.location.href);
+  url.searchParams.set("org", org.id);
+  return url.toString();
+}
+
+async function copyShareUrl(url) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(url);
+    return true;
+  }
+
+  const input = document.createElement("textarea");
+  input.value = url;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  document.body.removeChild(input);
+  return copied;
+}
+
 function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSelectedId }) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
+  const [copiedId, setCopiedId] = useState("");
+  const [likedIds, setLikedIds] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem(FAVORITES_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(likedIds));
+  }, [likedIds]);
+
+  function handleSelect(orgId) {
+    setSelectedId(orgId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("org", orgId);
+      window.history.replaceState({}, "", url);
+    }
+  }
+
+  function toggleLiked(orgId) {
+    setLikedIds((current) =>
+      current.includes(orgId)
+        ? current.filter((id) => id !== orgId)
+        : [...current, orgId],
+    );
+  }
+
+  async function shareOrg(org) {
+    const url = getShareUrl(org);
+    const text = `${org.name} - ${getOrgText(org, "help", lang)}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: org.name, text, url });
+        return;
+      } catch {
+        // Fall through to copy when the share sheet is dismissed or unavailable.
+      }
+    }
+
+    if (await copyShareUrl(url)) {
+      setCopiedId(org.id);
+      window.setTimeout(() => setCopiedId(""), 1800);
+    }
+  }
 
   const shown = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return organizations.filter((org) => {
-      const matchesFilter =
-        selectedFilter === "all" || org.categories.includes(selectedFilter);
-      const haystack = [
-        org.name,
-        getOrgText(org, "subtitle", lang),
-        getOrgText(org, "help", lang),
-        org.regions.join(" "),
-        trustLabels[org.trust][lang],
-      ]
-        .join(" ")
-        .toLowerCase();
-      return matchesFilter && (!normalized || haystack.includes(normalized));
-    });
+    return organizations
+      .filter((org) => {
+        const matchesFilter =
+          selectedFilter === "all" || org.categories.includes(selectedFilter);
+        const haystack = [
+          org.name,
+          getOrgText(org, "subtitle", lang),
+          getOrgText(org, "help", lang),
+          org.regions.join(" "),
+          trustLabels[org.trust][lang],
+        ]
+          .join(" ")
+          .toLowerCase();
+        return matchesFilter && (!normalized || haystack.includes(normalized));
+      })
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.name.localeCompare(b.name));
   }, [lang, query, selectedFilter]);
 
   const selected =
@@ -831,16 +952,19 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
             <span>{t.table.help}</span>
             <span>{t.table.trust}</span>
             <span>{t.table.action}</span>
+            <span>{t.table.donate}</span>
           </div>
           {shown.length === 0 ? (
             <div className="empty-state">{t.empty}</div>
           ) : (
-            shown.map((org) => (
-              <button
+            shown.map((org) => {
+              const donateLink = getDonateLink(org);
+              const isLiked = likedIds.includes(org.id);
+
+              return (
+              <article
                 className={`org-row ${selected.id === org.id ? "is-selected" : ""}`}
                 key={org.id}
-                onClick={() => setSelectedId(org.id)}
-                type="button"
               >
                 <span className="org-cell org-name">
                   <OrganizationMark org={org} />
@@ -861,12 +985,50 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
                 <span className="org-cell">
                   <TrustBadge type={org.trust} lang={lang} />
                 </span>
-                <span className="org-cell row-action">
-                  {t.actions.details}
-                  <ExternalLink aria-hidden="true" />
+                <span className="org-cell action-cell">
+                  <button
+                    className="row-action"
+                    onClick={() => handleSelect(org.id)}
+                    type="button"
+                  >
+                    {t.actions.details}
+                    <ExternalLink aria-hidden="true" />
+                  </button>
+                  <span className="row-tools">
+                    <button
+                      className={`tool-button ${isLiked ? "is-liked" : ""}`}
+                      type="button"
+                      aria-label={isLiked ? t.actions.liked : t.actions.like}
+                      title={isLiked ? t.actions.liked : t.actions.like}
+                      onClick={() => toggleLiked(org.id)}
+                    >
+                      <Heart aria-hidden="true" />
+                    </button>
+                    <button
+                      className="tool-button"
+                      type="button"
+                      aria-label={t.actions.share}
+                      title={copiedId === org.id ? t.actions.copied : t.actions.share}
+                      onClick={() => shareOrg(org)}
+                    >
+                      <Share2 aria-hidden="true" />
+                    </button>
+                  </span>
                 </span>
-              </button>
-            ))
+                <span className="org-cell donate-cell">
+                  <a
+                    className="donate-button"
+                    href={donateLink.href}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <HeartHandshake aria-hidden="true" />
+                    {t.actions.donateNow}
+                  </a>
+                </span>
+              </article>
+            );
+            })
           )}
           <p className="result-count">
             {t.results
@@ -881,15 +1043,45 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
               <h2>{selected.name}</h2>
               <TrustBadge type={selected.trust} lang={lang} />
             </div>
-            <button
-              className="icon-button"
-              type="button"
-              aria-label={t.detail.close}
-              onClick={() => setSelectedId(shown[0]?.id || organizations[0].id)}
-            >
-              <X aria-hidden="true" />
-            </button>
+            <div className="details-actions">
+              <button
+                className={`icon-button ${likedIds.includes(selected.id) ? "is-liked" : ""}`}
+                type="button"
+                aria-label={likedIds.includes(selected.id) ? t.actions.liked : t.actions.like}
+                title={likedIds.includes(selected.id) ? t.actions.liked : t.actions.like}
+                onClick={() => toggleLiked(selected.id)}
+              >
+                <Heart aria-hidden="true" />
+              </button>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label={t.actions.share}
+                title={copiedId === selected.id ? t.actions.copied : t.actions.share}
+                onClick={() => shareOrg(selected)}
+              >
+                <Share2 aria-hidden="true" />
+              </button>
+              <button
+                className="icon-button"
+                type="button"
+                aria-label={t.detail.close}
+                onClick={() => handleSelect(shown[0]?.id || organizations[0].id)}
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
           </div>
+
+          <a
+            className="detail-donate"
+            href={getDonateLink(selected).href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            <HeartHandshake aria-hidden="true" />
+            {t.actions.donateNow}
+          </a>
 
           <dl>
             <Field icon={PackageOpen} title={t.detail.what}>
@@ -1007,7 +1199,10 @@ export function App() {
   const [lang, setLang] = useState("en");
   const [view, setView] = useState("directory");
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [selectedId, setSelectedId] = useState("direct-relief");
+  const [selectedId, setSelectedId] = useState(() => {
+    if (typeof window === "undefined") return "direct-relief";
+    return new URLSearchParams(window.location.search).get("org") || "direct-relief";
+  });
   const t = copy[lang];
 
   return (
