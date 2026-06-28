@@ -810,6 +810,260 @@ dd {
   padding: 12px;
 }
 
+.admin-page {
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 1460px;
+  padding: 42px 40px 64px;
+}
+
+.admin-hero {
+  max-width: 820px;
+}
+
+.admin-hero h1 {
+  font-size: 42px;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.admin-hero p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+
+.admin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-summary span,
+.admin-message {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 750;
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.admin-message {
+  background: #eef4ff;
+  color: var(--blue-dark);
+}
+
+.admin-workspace {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.admin-list,
+.admin-editor {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.admin-list {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  position: sticky;
+  top: 102px;
+}
+
+.admin-toolbar,
+.admin-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.secondary-button,
+.danger-button {
+  align-items: center;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 780;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.danger-button {
+  border-color: #ffd0d0;
+  color: #b42318;
+}
+
+.admin-org-list {
+  display: grid;
+  gap: 8px;
+  max-height: 66vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.admin-org-button {
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  text-align: left;
+}
+
+.admin-org-button.is-current {
+  border-color: var(--blue);
+  box-shadow: inset 3px 0 0 var(--blue);
+}
+
+.admin-org-button span {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-org-button small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-editor {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.admin-editor-head {
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding-bottom: 18px;
+}
+
+.admin-editor h2 {
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.admin-editor-head p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 5px 0 0;
+}
+
+.admin-form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-choice-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-choice-grid fieldset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0;
+  min-width: 0;
+  padding: 14px;
+}
+
+.admin-choice-grid legend {
+  color: #344054;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 5px;
+}
+
+.admin-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.check-pill {
+  align-items: center;
+  background: #f6f8fb;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #344054;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 760;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.check-pill:has(input:checked) {
+  background: #eef4ff;
+  border-color: #b9ccff;
+  color: var(--blue);
+}
+
+.check-pill input {
+  accent-color: var(--blue);
+  margin: 0;
+  padding: 0;
+}
+
+.admin-editor label {
+  color: #344054;
+  display: grid;
+  font-size: 13px;
+  font-weight: 800;
+  gap: 8px;
+}
+
+.admin-editor input,
+.admin-editor select,
+.admin-editor textarea {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  min-width: 0;
+  outline: 0;
+  padding: 11px 12px;
+}
+
+.admin-editor input:focus,
+.admin-editor select:focus,
+.admin-editor textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(21, 94, 239, 0.12);
+}
+
+.admin-import {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+}
+
 @media (max-width: 1120px) {
   .site-header {
     grid-template-columns: 1fr auto;
@@ -832,6 +1086,19 @@ dd {
   .details {
     position: static;
   }
+
+  .admin-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-list {
+    position: static;
+  }
+
+  .admin-form-grid,
+  .admin-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -839,7 +1106,8 @@ dd {
   .hero,
   .filters,
   .workspace,
-  .info-page {
+  .info-page,
+  .admin-page {
     padding-left: 20px;
     padding-right: 20px;
   }
@@ -900,7 +1168,13 @@ dd {
 
   .info-page,
   .submit-page,
-  .info-grid {
+  .info-grid,
+  .admin-form-grid,
+  .admin-choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-editor-head {
+    display: grid;
   }
 }

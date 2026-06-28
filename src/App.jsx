@@ -36,6 +36,19 @@ const filters = [
   { id: "tax", icon: ShieldCheck },
 ];
 
+const categoryOptions = [
+  ["money", "Money donations"],
+  ["medical", "Medical supplies"],
+  ["food", "Food + water"],
+  ["dropoff", "Local drop-offs"],
+  ["volunteer", "Volunteer"],
+  ["children", "Children help"],
+  ["animal", "Animal help"],
+  ["tax", "US tax-deductible"],
+];
+
+const regionOptions = ["US", "Venezuela", "Europe", "Global", "Miami"];
+
 const copy = {
   en: {
     brand: "Venezuela Relief",
@@ -46,6 +59,7 @@ const copy = {
       abroad: "For donors abroad",
       verify: "Verification process",
       submit: "Add organization",
+      admin: "CMS",
     },
     heroTitle: "Verified ways to help Venezuela",
     heroText:
@@ -131,6 +145,7 @@ const copy = {
       abroad: "Donantes afuera",
       verify: "Verificacion",
       submit: "Agregar organizacion",
+      admin: "CMS",
     },
     heroTitle: "Formas verificadas de ayudar a Venezuela",
     heroText:
@@ -232,7 +247,9 @@ const trustLabels = {
   },
 };
 
-const organizations = [
+const CONTENT_KEY = "venezuela-relief-organizations-v1";
+
+const defaultOrganizations = [
   {
     id: "direct-relief",
     name: "Direct Relief",
@@ -810,10 +827,137 @@ function OrganizationMark({ org }) {
 
 const FAVORITES_KEY = "venezuela-relief-liked-organizations";
 
+function splitList(value) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function joinList(items) {
+  return items.join(", ");
+}
+
+function toggleListValue(value, option) {
+  const items = splitList(value);
+  return items.includes(option)
+    ? joinList(items.filter((item) => item !== option))
+    : joinList([...items, option]);
+}
+
+function getInitials(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function getEditorDraft(org) {
+  const details = org.details || {};
+  const links = details.links || [];
+
+  return {
+    id: org.id,
+    name: org.name,
+    subtitle: getOrgText(org, "subtitle", "en"),
+    logoUrl: org.logoUrl || "",
+    help: getOrgText(org, "help", "en"),
+    categories: (org.categories || []).join(", "),
+    regions: (org.regions || []).join(", "),
+    trust: org.trust,
+    status: org.status || "approved",
+    priority: String(org.priority || 50),
+    priorityNote: org.priorityNote || "",
+    donationUrl: getDonateLink(org)?.href || "",
+    sourceUrl: links.find((link) => !link.label.toLowerCase().includes("donate"))?.href || "",
+    what: details.what?.en || "",
+    who: details.who?.en || "",
+    tax: details.tax?.en || "",
+    route: details.route?.en || "",
+    risk: details.risk?.en || "",
+    checked: details.checked || "Needs review",
+  };
+}
+
+function createOrganizationFromDraft(draft, existingOrg) {
+  const name = draft.name.trim() || "New organization";
+  const id = existingOrg?.id || slugify(name) || `organization-${Date.now()}`;
+  const sourceUrl = draft.sourceUrl.trim();
+  const donationUrl = draft.donationUrl.trim();
+  const links = [
+    sourceUrl ? { label: "Source", href: sourceUrl } : null,
+    donationUrl ? { label: "Donate", href: donationUrl } : null,
+  ].filter(Boolean);
+
+  return {
+    ...(existingOrg || {}),
+    id,
+    name,
+    subtitle: { en: draft.subtitle.trim() || "Relief organization", es: draft.subtitle.trim() || "Organizacion de ayuda" },
+    initials: existingOrg?.initials || getInitials(name),
+    mark: existingOrg?.mark || "mark-blue",
+    logoUrl: draft.logoUrl.trim(),
+    help: { en: draft.help.trim(), es: draft.help.trim() },
+    categories: splitList(draft.categories),
+    regions: splitList(draft.regions),
+    trust: draft.trust,
+    status: draft.status,
+    priority: Number(draft.priority) || 50,
+    priorityNote: draft.priorityNote.trim(),
+    action: donationUrl ? "Donate" : "Details",
+    details: {
+      ...(existingOrg?.details || {}),
+      what: { en: draft.what.trim(), es: draft.what.trim() },
+      who: { en: draft.who.trim(), es: draft.who.trim() },
+      tax: { en: draft.tax.trim(), es: draft.tax.trim() },
+      route: { en: draft.route.trim(), es: draft.route.trim() },
+      risk: { en: draft.risk.trim(), es: draft.risk.trim() },
+      checked: draft.checked.trim() || new Date().toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      links,
+    },
+  };
+}
+
+function useEditableOrganizations() {
+  const [organizations, setOrganizations] = useState(() => {
+    if (typeof window === "undefined") return defaultOrganizations;
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(CONTENT_KEY) || "null");
+      return Array.isArray(stored) && stored.length ? stored : defaultOrganizations;
+    } catch {
+      return defaultOrganizations;
+    }
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem(CONTENT_KEY, JSON.stringify(organizations));
+  }, [organizations]);
+
+  return [organizations, setOrganizations];
+}
+
 function getDonateLink(org) {
+  const links = org.details?.links || [];
+
   return (
-    org.details.links.find((link) => link.label.toLowerCase().includes("donate")) ||
-    org.details.links[org.details.links.length - 1]
+    links.find((link) => link.label.toLowerCase().includes("donate")) ||
+    links[links.length - 1] ||
+    { label: "Website", href: links[0]?.href || "#" }
   );
 }
 
@@ -842,7 +986,7 @@ async function copyShareUrl(url) {
   return copied;
 }
 
-function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSelectedId }) {
+function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSelectedId, organizations }) {
   const t = copy[lang];
   const [query, setQuery] = useState("");
   const [copiedId, setCopiedId] = useState("");
@@ -899,6 +1043,7 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
     const normalized = query.trim().toLowerCase();
     return organizations
       .filter((org) => {
+        if (["review", "rejected", "archived"].includes(org.status)) return false;
         const matchesFilter =
           selectedFilter === "all" || org.categories.includes(selectedFilter);
         const haystack = [
@@ -913,7 +1058,7 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
         return matchesFilter && (!normalized || haystack.includes(normalized));
       })
       .sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.name.localeCompare(b.name));
-  }, [lang, query, selectedFilter]);
+  }, [lang, organizations, query, selectedFilter]);
 
   const selected =
     shown.find((org) => org.id === selectedId) || shown[0] || organizations[0];
@@ -1082,7 +1227,7 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
                 className="icon-button"
                 type="button"
                 aria-label={t.detail.close}
-                onClick={() => handleSelect(shown[0]?.id || organizations[0].id)}
+                onClick={() => handleSelect(shown[0]?.id || organizations[0]?.id)}
               >
                 <X aria-hidden="true" />
               </button>
@@ -1223,7 +1368,340 @@ function InfoPage({ page, lang }) {
   );
 }
 
+function AdminPage({ organizations, setOrganizations }) {
+  const [selectedId, setSelectedId] = useState(organizations[0]?.id || "");
+  const selected = organizations.find((org) => org.id === selectedId) || organizations[0];
+  const [draft, setDraft] = useState(() => getEditorDraft(selected || defaultOrganizations[0]));
+  const [message, setMessage] = useState("");
+  const [importText, setImportText] = useState("");
+
+  useEffect(() => {
+    if (selected) setDraft(getEditorDraft(selected));
+  }, [selectedId, selected]);
+
+  function updateDraft(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function toggleDraftList(field, value) {
+    setDraft((current) => ({
+      ...current,
+      [field]: toggleListValue(current[field], value),
+    }));
+  }
+
+  function saveDraft() {
+    const nextOrg = createOrganizationFromDraft(draft, selected);
+    setOrganizations((current) =>
+      current.map((org) => (org.id === selected?.id ? nextOrg : org)),
+    );
+    setSelectedId(nextOrg.id);
+    setMessage("Saved locally. Publish by syncing to the database or exporting JSON.");
+  }
+
+  function addOrganization() {
+    const fresh = createOrganizationFromDraft(
+      {
+        id: "",
+        name: "New organization",
+        subtitle: "Relief organization",
+        logoUrl: "",
+        help: "Describe the help this organization provides.",
+        categories: "money",
+        regions: "US, Global",
+        trust: "review",
+        status: "review",
+        priority: "50",
+        priorityNote: "Needs editorial review.",
+        donationUrl: "",
+        sourceUrl: "",
+        what: "Describe what they do.",
+        who: "Describe who can help.",
+        tax: "Tax status needs review.",
+        route: "Aid route needs review.",
+        risk: "Needs source verification before publication.",
+        checked: "Needs review",
+      },
+      null,
+    );
+    fresh.id = `${fresh.id}-${Date.now().toString().slice(-4)}`;
+    setOrganizations((current) => [fresh, ...current]);
+    setSelectedId(fresh.id);
+    setMessage("New organization created in review status.");
+  }
+
+  function duplicateOrganization() {
+    if (!selected) return;
+    const copyOrg = {
+      ...selected,
+      id: `${selected.id}-copy-${Date.now().toString().slice(-4)}`,
+      name: `${selected.name} Copy`,
+      status: "review",
+      priority: 50,
+    };
+    setOrganizations((current) => [copyOrg, ...current]);
+    setSelectedId(copyOrg.id);
+    setMessage("Duplicated as a review draft.");
+  }
+
+  function deleteOrganization() {
+    if (!selected) return;
+    const next = organizations.filter((org) => org.id !== selected.id);
+    setOrganizations(next);
+    setSelectedId(next[0]?.id || "");
+    setMessage("Organization removed from local CMS data.");
+  }
+
+  function resetContent() {
+    setOrganizations(defaultOrganizations);
+    setSelectedId(defaultOrganizations[0].id);
+    setMessage("Reset to the code default content.");
+  }
+
+  function exportContent() {
+    const blob = new Blob([JSON.stringify(organizations, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "venezuela-relief-organizations.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importContent() {
+    try {
+      const parsed = JSON.parse(importText);
+      if (!Array.isArray(parsed)) throw new Error("Expected an array");
+      setOrganizations(parsed);
+      setSelectedId(parsed[0]?.id || "");
+      setImportText("");
+      setMessage("Imported JSON into local CMS data.");
+    } catch {
+      setMessage("Import failed. Paste JSON exported from this CMS.");
+    }
+  }
+
+  const counts = organizations.reduce(
+    (acc, org) => {
+      const status = org.status || "approved";
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    },
+    {},
+  );
+
+  return (
+    <section className="admin-page" aria-label="Content management system">
+      <div className="admin-hero">
+        <p className="eyebrow">Private content tools</p>
+        <h1>CMS</h1>
+        <p>
+          Edit organizations, donation links, logos, priority, trust level, and publication status.
+        </p>
+      </div>
+
+      <div className="admin-summary" aria-label="CMS summary">
+        <span>{organizations.length} organizations</span>
+        <span>{counts.approved || 0} approved</span>
+        <span>{counts.review || 0} in review</span>
+      </div>
+
+      {message ? <p className="admin-message">{message}</p> : null}
+
+      <div className="admin-workspace">
+        <aside className="admin-list" aria-label="Organizations">
+          <div className="admin-toolbar">
+            <button className="primary-button" type="button" onClick={addOrganization}>
+              Add organization
+            </button>
+            <button className="secondary-button" type="button" onClick={exportContent}>
+              Export JSON
+            </button>
+          </div>
+          <div className="admin-org-list">
+            {organizations
+              .slice()
+              .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+              .map((org) => (
+                <button
+                  className={`admin-org-button ${selected?.id === org.id ? "is-current" : ""}`}
+                  key={org.id}
+                  type="button"
+                  onClick={() => setSelectedId(org.id)}
+                >
+                  <span>{org.name}</span>
+                  <small>{org.status || "approved"} / priority {org.priority || 50}</small>
+                </button>
+              ))}
+          </div>
+        </aside>
+
+        <form
+          className="admin-editor"
+          onSubmit={(event) => {
+            event.preventDefault();
+            saveDraft();
+          }}
+        >
+          <div className="admin-editor-head">
+            <div>
+              <h2>{draft.name || "Organization"}</h2>
+              <p>{draft.status} / priority {draft.priority}</p>
+            </div>
+            <div className="admin-editor-actions">
+              <button className="secondary-button" type="button" onClick={duplicateOrganization}>
+                Duplicate
+              </button>
+              <button className="danger-button" type="button" onClick={deleteOrganization}>
+                Delete
+              </button>
+              <button className="primary-button" type="submit">
+                Save changes
+              </button>
+            </div>
+          </div>
+
+          <div className="admin-form-grid">
+            <label>
+              Organization name
+              <input value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} />
+            </label>
+            <label>
+              Subtitle
+              <input value={draft.subtitle} onChange={(event) => updateDraft("subtitle", event.target.value)} />
+            </label>
+            <label>
+              Logo URL
+              <input value={draft.logoUrl} onChange={(event) => updateDraft("logoUrl", event.target.value)} placeholder="https://" />
+            </label>
+            <label>
+              Donation URL
+              <input value={draft.donationUrl} onChange={(event) => updateDraft("donationUrl", event.target.value)} placeholder="https://" />
+            </label>
+            <label>
+              Source URL
+              <input value={draft.sourceUrl} onChange={(event) => updateDraft("sourceUrl", event.target.value)} placeholder="https://" />
+            </label>
+            <label>
+              Last checked
+              <input value={draft.checked} onChange={(event) => updateDraft("checked", event.target.value)} />
+            </label>
+            <label>
+              Status
+              <select value={draft.status} onChange={(event) => updateDraft("status", event.target.value)}>
+                <option value="approved">Approved</option>
+                <option value="review">Review</option>
+                <option value="rejected">Rejected</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <label>
+              Trust level
+              <select value={draft.trust} onChange={(event) => updateDraft("trust", event.target.value)}>
+                <option value="verified">Verified nonprofit</option>
+                <option value="field">Field partner verified</option>
+                <option value="community">Community drive</option>
+                <option value="review">Needs review</option>
+              </select>
+            </label>
+            <label>
+              Priority score
+              <input min="0" max="100" type="number" value={draft.priority} onChange={(event) => updateDraft("priority", event.target.value)} />
+            </label>
+            <label>
+              Priority note
+              <input value={draft.priorityNote} onChange={(event) => updateDraft("priorityNote", event.target.value)} />
+            </label>
+          </div>
+
+          <div className="admin-choice-grid">
+            <fieldset>
+              <legend>Help types</legend>
+              <div className="admin-checks">
+                {categoryOptions.map(([id, label]) => (
+                  <label className="check-pill" key={id}>
+                    <input
+                      checked={splitList(draft.categories).includes(id)}
+                      onChange={() => toggleDraftList("categories", id)}
+                      type="checkbox"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend>Donor regions</legend>
+              <div className="admin-checks">
+                {regionOptions.map((region) => (
+                  <label className="check-pill" key={region}>
+                    <input
+                      checked={splitList(draft.regions).includes(region)}
+                      onChange={() => toggleDraftList("regions", region)}
+                      type="checkbox"
+                    />
+                    {region}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
+          <label>
+            Help summary
+            <textarea rows="3" value={draft.help} onChange={(event) => updateDraft("help", event.target.value)} />
+          </label>
+          <label>
+            What they do
+            <textarea rows="4" value={draft.what} onChange={(event) => updateDraft("what", event.target.value)} />
+          </label>
+          <label>
+            Who can help
+            <textarea rows="3" value={draft.who} onChange={(event) => updateDraft("who", event.target.value)} />
+          </label>
+          <label>
+            Tax note
+            <textarea rows="3" value={draft.tax} onChange={(event) => updateDraft("tax", event.target.value)} />
+          </label>
+          <label>
+            Aid route
+            <textarea rows="3" value={draft.route} onChange={(event) => updateDraft("route", event.target.value)} />
+          </label>
+          <label>
+            Risk notes
+            <textarea rows="3" value={draft.risk} onChange={(event) => updateDraft("risk", event.target.value)} />
+          </label>
+
+          <div className="admin-import">
+            <label>
+              Import JSON
+              <textarea
+                rows="5"
+                value={importText}
+                onChange={(event) => setImportText(event.target.value)}
+                placeholder="Paste exported CMS JSON here"
+              />
+            </label>
+            <div className="admin-editor-actions">
+              <button className="secondary-button" type="button" onClick={importContent}>
+                Import JSON
+              </button>
+              <button className="danger-button" type="button" onClick={resetContent}>
+                Reset local content
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export function App() {
+  const [organizations, setOrganizations] = useEditableOrganizations();
   const [lang, setLang] = useState("en");
   const [view, setView] = useState("directory");
   const [selectedFilter, setSelectedFilter] = useState("all");
@@ -1244,7 +1722,7 @@ export function App() {
           </span>
         </button>
         <nav aria-label="Primary navigation">
-          {["directory", "ways", "abroad", "verify", "submit"].map((item) => (
+          {["directory", "ways", "abroad", "verify", "submit", "admin"].map((item) => (
             <button
               className={view === item ? "is-current" : ""}
               key={item}
@@ -1271,12 +1749,15 @@ export function App() {
 
       {view === "directory" ? (
         <Directory
+          organizations={organizations}
           lang={lang}
           selectedFilter={selectedFilter}
           setSelectedFilter={setSelectedFilter}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
         />
+      ) : view === "admin" ? (
+        <AdminPage organizations={organizations} setOrganizations={setOrganizations} />
       ) : (
         <InfoPage page={view} lang={lang} />
       )}
