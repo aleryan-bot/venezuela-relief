@@ -137,12 +137,16 @@ const copy = {
     },
     admin: {
       lockedTitle: "CMS login",
-      lockedText: "Enter the editor password to update organizations.",
+      lockedText: "Sign in with an approved editor account to update organizations.",
+      email: "Editor email",
       password: "Password",
-      unlock: "Unlock CMS",
-      error: "Password not recognized.",
-      note: "For launch, this protects the editing screen on this device. Production editing should use Supabase login.",
-      logout: "Lock CMS",
+      unlock: "Sign in",
+      error: "Login failed. Check the email, password, and editor access.",
+      note: "Supabase login is active when VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are configured. Without them, local testing uses the temporary password.",
+      localNote: "Local testing mode. Set Supabase environment variables before deploying private editing.",
+      logout: "Sign out",
+      modeLocal: "Local CMS",
+      modeSupabase: "Supabase CMS",
     },
     form: {
       submitter: "Who is submitting this information?",
@@ -243,12 +247,16 @@ const copy = {
     },
     admin: {
       lockedTitle: "Ingreso CMS",
-      lockedText: "Ingresa la clave editorial para actualizar organizaciones.",
+      lockedText: "Ingresa con una cuenta editorial aprobada para actualizar organizaciones.",
+      email: "Email editorial",
       password: "Clave",
-      unlock: "Abrir CMS",
-      error: "Clave no reconocida.",
-      note: "Para lanzamiento, esto protege la pantalla de edicion en este dispositivo. En produccion debe usarse login con Supabase.",
-      logout: "Cerrar CMS",
+      unlock: "Ingresar",
+      error: "No se pudo ingresar. Revisa email, clave y acceso editorial.",
+      note: "El login de Supabase se activa cuando VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estan configuradas. Sin eso, el modo local usa la clave temporal.",
+      localNote: "Modo local de prueba. Configura Supabase antes de publicar edicion privada.",
+      logout: "Salir",
+      modeLocal: "CMS local",
+      modeSupabase: "CMS Supabase",
     },
     form: {
       submitter: "Quien envia esta informacion?",
@@ -289,7 +297,25 @@ const trustLabels = {
 
 const CONTENT_KEY = "venezuela-relief-organizations-v1";
 const ADMIN_SESSION_KEY = "venezuela-relief-admin-session";
+const SUPABASE_SESSION_KEY = "venezuela-relief-supabase-session";
 const ADMIN_PASSWORD = "venezuela-relief";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const HAS_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+const appToDbTrust = {
+  verified: "verified_nonprofit",
+  field: "field_partner_verified",
+  community: "community_drive",
+  review: "needs_review",
+};
+
+const dbToAppTrust = {
+  verified_nonprofit: "verified",
+  field_partner_verified: "field",
+  community_drive: "community",
+  needs_review: "review",
+};
 
 const defaultOrganizations = [
   {
@@ -906,6 +932,132 @@ function slugify(value) {
     .slice(0, 80);
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function parseEvidenceLinks(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((link) => {
+      if (typeof link === "string") return { label: "Source", href: link };
+      if (link?.href) return { label: link.label || "Source", href: link.href };
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function formatCheckedDate(value) {
+  if (!value) return "Needs review";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function toDatabaseDate(value) {
+  if (!value || value === "Needs review") return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+function fromSupabaseOrganization(row) {
+  const evidenceLinks = parseEvidenceLinks(row.evidence_links);
+  const links = [
+    ...evidenceLinks,
+    row.donation_url ? { label: "Donate", href: row.donation_url } : null,
+  ].filter(Boolean);
+
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.display_name,
+    subtitle: {
+      en: row.legal_name || "Relief organization",
+      es: row.legal_name || "Organizacion de ayuda",
+    },
+    initials: getInitials(row.display_name),
+    mark: "mark-blue",
+    logoUrl: row.logo_url || "",
+    help: {
+      en: row.summary_en || "",
+      es: row.summary_es || row.summary_en || "",
+    },
+    categories: row.help_types || [],
+    regions: row.donor_regions || [],
+    trust: dbToAppTrust[row.trust_level] || "review",
+    status: row.status || "review",
+    priority: row.priority_score || 50,
+    priorityNote: row.priority_note || "",
+    action: row.donation_url ? "Donate" : "Details",
+    details: {
+      what: {
+        en: row.what_they_do_en || row.summary_en || "",
+        es: row.what_they_do_es || row.what_they_do_en || row.summary_es || row.summary_en || "",
+      },
+      who: {
+        en: row.who_can_help_en || "",
+        es: row.who_can_help_es || row.who_can_help_en || "",
+      },
+      tax: {
+        en: row.ein
+          ? `US tax status: ${row.us_tax_status}. EIN: ${row.ein}. Confirm in IRS records before publishing.`
+          : `US tax status: ${row.us_tax_status || "unknown"}. Confirm before publishing.`,
+        es: row.ein
+          ? `Estatus fiscal EEUU: ${row.us_tax_status}. EIN: ${row.ein}. Confirmar en IRS antes de publicar.`
+          : `Estatus fiscal EEUU: ${row.us_tax_status || "unknown"}. Confirmar antes de publicar.`,
+      },
+      route: {
+        en: row.aid_route_en || row.where_aid_goes || "",
+        es: row.aid_route_es || row.aid_route_en || row.where_aid_goes || "",
+      },
+      risk: {
+        en: row.risk_notes_en || "",
+        es: row.risk_notes_es || row.risk_notes_en || "",
+      },
+      checked: formatCheckedDate(row.last_checked),
+      links,
+    },
+  };
+}
+
+function toSupabaseOrganization(org) {
+  const sourceLinks = (org.details?.links || []).filter(
+    (link) => !link.label.toLowerCase().includes("donate"),
+  );
+
+  return {
+    slug: org.slug || slugify(org.name),
+    display_name: org.name,
+    legal_name: getOrgText(org, "subtitle", "en"),
+    logo_url: org.logoUrl || null,
+    donation_url: getDonateLink(org).href === "#" ? null : getDonateLink(org).href,
+    help_types: org.categories || [],
+    donor_regions: org.regions || [],
+    trust_level: appToDbTrust[org.trust] || "needs_review",
+    priority_score: org.priority || 50,
+    priority_note: org.priorityNote || null,
+    summary_en: getOrgText(org, "help", "en") || "Relief organization.",
+    summary_es: getOrgText(org, "help", "es") || getOrgText(org, "help", "en") || null,
+    what_they_do_en: org.details?.what?.en || null,
+    what_they_do_es: org.details?.what?.es || null,
+    who_can_help_en: org.details?.who?.en || null,
+    who_can_help_es: org.details?.who?.es || null,
+    aid_route_en: org.details?.route?.en || null,
+    aid_route_es: org.details?.route?.es || null,
+    evidence_links: sourceLinks,
+    risk_notes_en: org.details?.risk?.en || null,
+    risk_notes_es: org.details?.risk?.es || null,
+    last_checked: toDatabaseDate(org.details?.checked),
+    status: org.status || "review",
+    updated_at: new Date().toISOString(),
+  };
+}
+
 function getEditorDraft(org) {
   const details = org.details || {};
   const links = details.links || [];
@@ -992,6 +1144,76 @@ function useEditableOrganizations() {
   }, [organizations]);
 
   return [organizations, setOrganizations];
+}
+
+async function supabaseRequest(path, { method = "GET", body, token, prefer } = {}) {
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    method,
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json",
+      ...(prefer ? { Prefer: prefer } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Supabase request failed with ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function signInWithSupabase(email, password) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Login failed");
+  }
+
+  return response.json();
+}
+
+async function loadSupabaseOrganizations(token) {
+  const query = [
+    "select=*",
+    "order=priority_score.desc,display_name.asc",
+  ].join("&");
+  const rows = await supabaseRequest(`/rest/v1/organizations?${query}`, { token });
+  return rows.map(fromSupabaseOrganization);
+}
+
+async function saveSupabaseOrganization(org, token) {
+  const payload = toSupabaseOrganization(org);
+  const path = isUuid(org.id)
+    ? `/rest/v1/organizations?id=eq.${org.id}&select=*`
+    : "/rest/v1/organizations?select=*";
+  const method = isUuid(org.id) ? "PATCH" : "POST";
+  const rows = await supabaseRequest(path, {
+    method,
+    token,
+    body: payload,
+    prefer: "return=representation",
+  });
+  return fromSupabaseOrganization(rows[0]);
+}
+
+async function deleteSupabaseOrganization(org, token) {
+  if (!isUuid(org.id)) return;
+  await supabaseRequest(`/rest/v1/organizations?id=eq.${org.id}`, {
+    method: "DELETE",
+    token,
+  });
 }
 
 function getDonateLink(org) {
@@ -1478,53 +1700,80 @@ function InfoPage({ page, lang }) {
 
 function AdminLogin({ lang, onUnlock }) {
   const t = copy[lang];
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <section className="admin-login" aria-label={t.admin.lockedTitle}>
       <form
         className="login-card"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          if (password === ADMIN_PASSWORD) {
+          setIsSubmitting(true);
+          try {
+            await onUnlock({ email, password });
             setError(false);
-            onUnlock();
-            return;
+          } catch {
+            setError(true);
+          } finally {
+            setIsSubmitting(false);
           }
-          setError(true);
         }}
       >
         <Lock aria-hidden="true" />
-        <p className="eyebrow">Private content tools</p>
+        <p className="eyebrow">{HAS_SUPABASE ? t.admin.modeSupabase : t.admin.modeLocal}</p>
         <h1>{t.admin.lockedTitle}</h1>
         <p>{t.admin.lockedText}</p>
+        {HAS_SUPABASE ? (
+          <label>
+            {t.admin.email}
+            <input
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              type="email"
+              value={email}
+            />
+          </label>
+        ) : null}
         <label>
           {t.admin.password}
           <input
             autoComplete="current-password"
             onChange={(event) => setPassword(event.target.value)}
+            required
             type="password"
             value={password}
           />
         </label>
-        <button className="primary-button" type="submit">
+        <button className="primary-button" disabled={isSubmitting} type="submit">
           {t.admin.unlock}
         </button>
         {error ? <p className="form-error">{t.admin.error}</p> : null}
-        <p className="login-note">{t.admin.note}</p>
+        <p className="login-note">{HAS_SUPABASE ? t.admin.note : t.admin.localNote}</p>
       </form>
     </section>
   );
 }
 
-function AdminPage({ organizations, setOrganizations, lang, onLock }) {
+function AdminPage({
+  organizations,
+  setOrganizations,
+  lang,
+  onLock,
+  adminSession,
+  dataMode,
+  onReload,
+}) {
   const t = copy[lang];
   const [selectedId, setSelectedId] = useState(organizations[0]?.id || "");
   const selected = organizations.find((org) => org.id === selectedId) || organizations[0];
   const [draft, setDraft] = useState(() => getEditorDraft(selected || defaultOrganizations[0]));
   const [message, setMessage] = useState("");
   const [importText, setImportText] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (selected) setDraft(getEditorDraft(selected));
@@ -1541,13 +1790,34 @@ function AdminPage({ organizations, setOrganizations, lang, onLock }) {
     }));
   }
 
-  function saveDraft() {
+  async function saveDraft() {
     const nextOrg = createOrganizationFromDraft(draft, selected);
-    setOrganizations((current) =>
-      current.map((org) => (org.id === selected?.id ? nextOrg : org)),
-    );
-    setSelectedId(nextOrg.id);
-    setMessage("Saved locally. Publish by syncing to the database or exporting JSON.");
+    setIsSaving(true);
+
+    try {
+      if (dataMode === "supabase" && adminSession?.access_token) {
+        const savedOrg = await saveSupabaseOrganization(nextOrg, adminSession.access_token);
+        setOrganizations((current) => {
+          const exists = current.some((org) => org.id === selected?.id);
+          return exists
+            ? current.map((org) => (org.id === selected?.id ? savedOrg : org))
+            : [savedOrg, ...current];
+        });
+        setSelectedId(savedOrg.id);
+        setMessage("Saved to Supabase.");
+        return;
+      }
+
+      setOrganizations((current) =>
+        current.map((org) => (org.id === selected?.id ? nextOrg : org)),
+      );
+      setSelectedId(nextOrg.id);
+      setMessage("Saved locally. Export JSON or configure Supabase for shared publishing.");
+    } catch (error) {
+      setMessage(`Save failed: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function addOrganization() {
@@ -1595,15 +1865,32 @@ function AdminPage({ organizations, setOrganizations, lang, onLock }) {
     setMessage("Duplicated as a review draft.");
   }
 
-  function deleteOrganization() {
+  async function deleteOrganization() {
     if (!selected) return;
-    const next = organizations.filter((org) => org.id !== selected.id);
-    setOrganizations(next);
-    setSelectedId(next[0]?.id || "");
-    setMessage("Organization removed from local CMS data.");
+    setIsSaving(true);
+
+    try {
+      if (dataMode === "supabase" && adminSession?.access_token) {
+        await deleteSupabaseOrganization(selected, adminSession.access_token);
+      }
+      const next = organizations.filter((org) => org.id !== selected.id);
+      setOrganizations(next);
+      setSelectedId(next[0]?.id || "");
+      setMessage(dataMode === "supabase" ? "Organization deleted from Supabase." : "Organization removed from local CMS data.");
+    } catch (error) {
+      setMessage(`Delete failed: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function resetContent() {
+    if (dataMode === "supabase") {
+      onReload();
+      setMessage("Reloaded organizations from Supabase.");
+      return;
+    }
+
     setOrganizations(defaultOrganizations);
     setSelectedId(defaultOrganizations[0].id);
     setMessage("Reset to the code default content.");
@@ -1654,6 +1941,7 @@ function AdminPage({ organizations, setOrganizations, lang, onLock }) {
       </div>
 
       <div className="admin-summary" aria-label="CMS summary">
+        <span>{dataMode === "supabase" ? t.admin.modeSupabase : t.admin.modeLocal}</span>
         <span>{organizations.length} organizations</span>
         <span>{counts.approved || 0} approved</span>
         <span>{counts.review || 0} in review</span>
@@ -1705,14 +1993,14 @@ function AdminPage({ organizations, setOrganizations, lang, onLock }) {
               <button className="secondary-button" type="button" onClick={onLock}>
                 {t.admin.logout}
               </button>
-              <button className="secondary-button" type="button" onClick={duplicateOrganization}>
+              <button className="secondary-button" disabled={isSaving} type="button" onClick={duplicateOrganization}>
                 Duplicate
               </button>
-              <button className="danger-button" type="button" onClick={deleteOrganization}>
+              <button className="danger-button" disabled={isSaving} type="button" onClick={deleteOrganization}>
                 Delete
               </button>
-              <button className="primary-button" type="submit">
-                Save changes
+              <button className="primary-button" disabled={isSaving} type="submit">
+                {isSaving ? "Saving..." : "Save changes"}
               </button>
             </div>
           </div>
@@ -1844,7 +2132,7 @@ function AdminPage({ organizations, setOrganizations, lang, onLock }) {
                 Import JSON
               </button>
               <button className="danger-button" type="button" onClick={resetContent}>
-                Reset local content
+                {dataMode === "supabase" ? "Reload Supabase" : "Reset local content"}
               </button>
             </div>
           </div>
@@ -1888,25 +2176,66 @@ export function App() {
   const [organizations, setOrganizations] = useEditableOrganizations();
   const [lang, setLang] = useState("en");
   const [view, setView] = useState("directory");
-  const [adminUnlocked, setAdminUnlocked] = useState(() => {
+  const [localAdminUnlocked, setLocalAdminUnlocked] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked";
   });
+  const [adminSession, setAdminSession] = useState(() => {
+    if (typeof window === "undefined" || !HAS_SUPABASE) return null;
+    try {
+      return JSON.parse(window.localStorage.getItem(SUPABASE_SESSION_KEY) || "null");
+    } catch {
+      return null;
+    }
+  });
+  const [dataMessage, setDataMessage] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(() => {
     if (typeof window === "undefined") return "direct-relief";
     return new URLSearchParams(window.location.search).get("org") || "direct-relief";
   });
   const t = copy[lang];
+  const adminUnlocked = HAS_SUPABASE ? Boolean(adminSession?.access_token) : localAdminUnlocked;
+  const dataMode = HAS_SUPABASE ? "supabase" : "local";
 
-  function unlockAdmin() {
+  async function reloadSupabaseOrganizations(token = adminSession?.access_token) {
+    if (!HAS_SUPABASE) return;
+    try {
+      const nextOrganizations = await loadSupabaseOrganizations(token);
+      if (nextOrganizations.length) {
+        setOrganizations(nextOrganizations);
+        setDataMessage("");
+      }
+    } catch (error) {
+      setDataMessage(`Supabase load failed: ${error.message}`);
+    }
+  }
+
+  useEffect(() => {
+    reloadSupabaseOrganizations(adminSession?.access_token);
+  }, [adminSession?.access_token]);
+
+  async function unlockAdmin(credentials) {
+    if (HAS_SUPABASE) {
+      const session = await signInWithSupabase(credentials.email, credentials.password);
+      window.localStorage.setItem(SUPABASE_SESSION_KEY, JSON.stringify(session));
+      setAdminSession(session);
+      return;
+    }
+
+    if (credentials.password !== ADMIN_PASSWORD) {
+      throw new Error("Invalid password");
+    }
+
     window.sessionStorage.setItem(ADMIN_SESSION_KEY, "unlocked");
-    setAdminUnlocked(true);
+    setLocalAdminUnlocked(true);
   }
 
   function lockAdmin() {
     window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    setAdminUnlocked(false);
+    window.localStorage.removeItem(SUPABASE_SESSION_KEY);
+    setLocalAdminUnlocked(false);
+    setAdminSession(null);
   }
 
   return (
@@ -1946,14 +2275,17 @@ export function App() {
       </header>
 
       {view === "directory" ? (
-        <Directory
-          organizations={organizations}
-          lang={lang}
-          selectedFilter={selectedFilter}
-          setSelectedFilter={setSelectedFilter}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-        />
+        <>
+          {dataMessage ? <p className="admin-message site-message">{dataMessage}</p> : null}
+          <Directory
+            organizations={organizations}
+            lang={lang}
+            selectedFilter={selectedFilter}
+            setSelectedFilter={setSelectedFilter}
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+          />
+        </>
       ) : view === "admin" ? (
         adminUnlocked ? (
           <AdminPage
@@ -1961,6 +2293,9 @@ export function App() {
             setOrganizations={setOrganizations}
             lang={lang}
             onLock={lockAdmin}
+            adminSession={adminSession}
+            dataMode={dataMode}
+            onReload={() => reloadSupabaseOrganizations(adminSession?.access_token)}
           />
         ) : (
           <AdminLogin lang={lang} onUnlock={unlockAdmin} />

@@ -42,6 +42,11 @@ button {
   color: inherit;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 a {
   color: var(--blue);
   text-decoration: none;
@@ -940,6 +945,11 @@ dd {
 .admin-message {
   background: #eef4ff;
   color: var(--blue-dark);
+}
+
+.site-message {
+  margin: 24px auto 0;
+  max-width: 1340px;
 }
 
 .admin-workspace {

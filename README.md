@@ -17,16 +17,30 @@ npm run build
 
 ## CMS Workflow
 
-The site includes a simple CMS login in the footer for editing organizations without touching code.
+The site includes a CMS login in the footer for editing organizations without touching code.
 
 - Use `CMS login` in the footer.
-- Temporary local password: `venezuela-relief`.
+- With Supabase configured, editors sign in with email/password.
+- Without Supabase configured, local testing still uses the temporary password: `venezuela-relief`.
 - Edit organization details, priority, trust level, logo URL, donation URL, help types, donor regions, and status.
-- Click `Save changes` to store edits in the browser.
+- Click `Save changes` to store edits in Supabase, or locally when Supabase is not configured.
 - Use `Export JSON` to download a backup of the edited organization data.
 - Organizations marked `Review`, `Rejected`, or `Archived` stay hidden from the public directory.
 
-This first CMS is local-browser based. The password protects the editing screen for launch testing, but production editing should use Supabase authentication.
+## Supabase Setup
+
+1. Create a Supabase project.
+2. Run `supabase/schema.sql` in the Supabase SQL editor.
+3. Create editor users in Supabase Auth.
+4. Add each editor's auth user id to `public.editor_users`.
+5. Add these environment variables in Vercel and local `.env`:
+
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+The public site reads approved organizations. Signed-in editors can read, create, update, and delete organizations.
 
 ## Likes And Popularity
 
