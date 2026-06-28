@@ -46,6 +46,8 @@ The public site reads approved organizations. Signed-in editors can read, create
 
 The `Add organization` form writes suggestions to the Supabase `submissions` table when Supabase is configured. Without Supabase, suggestions are saved in the browser for local testing.
 
+Editors can review public suggestions inside the CMS review queue. A suggestion can be rejected or converted into a review-status organization draft before it is approved for the public directory.
+
 ## Likes And Popularity
 
 Liked organizations persist in the visitor's browser and influence local sorting. Global popularity across all visitors requires Supabase; the database schema includes an `organization_likes` table and `organization_popularity` view for that next step.

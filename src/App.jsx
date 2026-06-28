@@ -1253,7 +1253,96 @@ async function createSubmission(payload) {
   const stored = JSON.parse(window.localStorage.getItem(LOCAL_SUBMISSIONS_KEY) || "[]");
   window.localStorage.setItem(
     LOCAL_SUBMISSIONS_KEY,
-    JSON.stringify([{ ...payload, created_at: new Date().toISOString() }, ...stored]),
+    JSON.stringify([
+      { ...payload, id: `local-${Date.now()}`, created_at: new Date().toISOString() },
+      ...stored,
+    ]),
+  );
+}
+
+function getSubmissionKey(submission) {
+  return submission.id || `${submission.organization_name}-${submission.created_at}`;
+}
+
+function getLocalSubmissions() {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_SUBMISSIONS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSubmissions(submissions) {
+  window.localStorage.setItem(LOCAL_SUBMISSIONS_KEY, JSON.stringify(submissions));
+}
+
+async function loadSubmissions(token) {
+  if (!HAS_SUPABASE) return getLocalSubmissions();
+
+  return supabaseRequest(
+    "/rest/v1/submissions?select=*&status=in.(new,reviewing)&order=created_at.desc",
+    { token },
+  );
+}
+
+async function updateSubmissionStatus(submission, status, token) {
+  if (HAS_SUPABASE && token && isUuid(submission.id)) {
+    const rows = await supabaseRequest(`/rest/v1/submissions?id=eq.${submission.id}&select=*`, {
+      method: "PATCH",
+      token,
+      body: {
+        status,
+        reviewed_at: new Date().toISOString(),
+      },
+      prefer: "return=representation",
+    });
+    return rows[0];
+  }
+
+  const nextSubmission = {
+    ...submission,
+    status,
+    reviewed_at: new Date().toISOString(),
+  };
+  const nextSubmissions = getLocalSubmissions().map((item) =>
+    getSubmissionKey(item) === getSubmissionKey(submission)
+      ? nextSubmission
+      : item,
+  );
+  saveLocalSubmissions(nextSubmissions);
+  return nextSubmission;
+}
+
+function getSubmissionSourceUrl(submission) {
+  const sourceLinks = submission.source_links || "";
+  const sourceMatch = sourceLinks.match(/https?:\/\/[^\s,]+/);
+  return sourceMatch?.[0] || submission.organization_url || "";
+}
+
+function createOrganizationFromSubmission(submission) {
+  return createOrganizationFromDraft(
+    {
+      name: submission.organization_name || "Submitted organization",
+      subtitle: "Submitted for review",
+      logoUrl: submission.organization_logo_url || "",
+      help: submission.help_type || "Describe the help this organization provides.",
+      categories: "money",
+      regions: submission.donor_region || "Global",
+      trust: "review",
+      status: "review",
+      priority: "50",
+      priorityNote: "Created from public suggestion. Needs editorial review.",
+      donationUrl: submission.donation_or_signup_url || "",
+      sourceUrl: getSubmissionSourceUrl(submission),
+      what: submission.help_type || "Describe what they do.",
+      who: submission.donor_region || "Describe who can help.",
+      tax: "Tax status needs review.",
+      route: "Aid route needs review.",
+      risk: submission.trust_reason || "Needs source verification before publication.",
+      checked: "Needs review",
+    },
+    null,
   );
 }
 
@@ -1824,11 +1913,14 @@ function AdminLogin({ lang, onUnlock }) {
 function AdminPage({
   organizations,
   setOrganizations,
+  submissions,
+  setSubmissions,
   lang,
   onLock,
   adminSession,
   dataMode,
   onReload,
+  onReloadSubmissions,
 }) {
   const t = copy[lang];
   const [selectedId, setSelectedId] = useState(organizations[0]?.id || "");
@@ -1837,6 +1929,7 @@ function AdminPage({
   const [message, setMessage] = useState("");
   const [importText, setImportText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isReviewing, setIsReviewing] = useState(false);
 
   useEffect(() => {
     if (selected) setDraft(getEditorDraft(selected));
@@ -1984,6 +2077,49 @@ function AdminPage({
     }
   }
 
+  async function rejectSubmission(submission) {
+    setIsReviewing(true);
+    try {
+      await updateSubmissionStatus(submission, "rejected", adminSession?.access_token);
+      setSubmissions((current) =>
+        current.filter((item) => getSubmissionKey(item) !== getSubmissionKey(submission)),
+      );
+      setMessage("Submission rejected.");
+    } catch (error) {
+      setMessage(`Could not reject submission: ${error.message}`);
+    } finally {
+      setIsReviewing(false);
+    }
+  }
+
+  async function createDraftFromSubmission(submission) {
+    const draftOrg = createOrganizationFromSubmission(submission);
+    draftOrg.id = `${draftOrg.id}-${Date.now().toString().slice(-4)}`;
+    setIsReviewing(true);
+
+    try {
+      if (dataMode === "supabase" && adminSession?.access_token) {
+        const savedOrg = await saveSupabaseOrganization(draftOrg, adminSession.access_token);
+        await updateSubmissionStatus(submission, "approved", adminSession.access_token);
+        setOrganizations((current) => [savedOrg, ...current]);
+        setSelectedId(savedOrg.id);
+      } else {
+        setOrganizations((current) => [draftOrg, ...current]);
+        setSelectedId(draftOrg.id);
+        await updateSubmissionStatus(submission, "approved");
+      }
+
+      setSubmissions((current) =>
+        current.filter((item) => getSubmissionKey(item) !== getSubmissionKey(submission)),
+      );
+      setMessage("Submission converted into an organization draft for review.");
+    } catch (error) {
+      setMessage(`Could not create draft: ${error.message}`);
+    } finally {
+      setIsReviewing(false);
+    }
+  }
+
   const counts = organizations.reduce(
     (acc, org) => {
       const status = org.status || "approved";
@@ -2006,6 +2142,7 @@ function AdminPage({
       <div className="admin-summary" aria-label="CMS summary">
         <span>{dataMode === "supabase" ? t.admin.modeSupabase : t.admin.modeLocal}</span>
         <span>{organizations.length} organizations</span>
+        <span>{submissions.length} submissions</span>
         <span>{counts.approved || 0} approved</span>
         <span>{counts.review || 0} in review</span>
       </div>
@@ -2200,6 +2337,73 @@ function AdminPage({
             </div>
           </div>
         </form>
+
+        <aside className="review-queue" aria-label="Submitted organizations">
+          <div className="review-head">
+            <div>
+              <h2>Review queue</h2>
+              <p>{submissions.length} public suggestions waiting</p>
+            </div>
+            <button className="secondary-button" type="button" onClick={onReloadSubmissions}>
+              Reload
+            </button>
+          </div>
+
+          {submissions.length ? (
+            <div className="submission-list">
+              {submissions.map((submission) => (
+                <article className="submission-card" key={getSubmissionKey(submission)}>
+                  <div>
+                    <h3>{submission.organization_name}</h3>
+                    <p>{submission.help_type}</p>
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>Submitted by</dt>
+                      <dd>{submission.submitter_name || "Unknown"} {submission.submitter_email ? `(${submission.submitter_email})` : ""}</dd>
+                    </div>
+                    <div>
+                      <dt>Donation link</dt>
+                      <dd>{submission.donation_or_signup_url || "Not provided"}</dd>
+                    </div>
+                    <div>
+                      <dt>Who can use it</dt>
+                      <dd>{submission.donor_region || "Not provided"}</dd>
+                    </div>
+                    <div>
+                      <dt>Trust reason</dt>
+                      <dd>{submission.trust_reason}</dd>
+                    </div>
+                    <div>
+                      <dt>Sources</dt>
+                      <dd>{submission.source_links || submission.organization_url || "Not provided"}</dd>
+                    </div>
+                  </dl>
+                  <div className="admin-editor-actions">
+                    <button
+                      className="primary-button"
+                      disabled={isReviewing}
+                      type="button"
+                      onClick={() => createDraftFromSubmission(submission)}
+                    >
+                      Create draft
+                    </button>
+                    <button
+                      className="danger-button"
+                      disabled={isReviewing}
+                      type="button"
+                      onClick={() => rejectSubmission(submission)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-review">No suggestions waiting for review.</p>
+          )}
+        </aside>
       </div>
     </section>
   );
@@ -2252,6 +2456,7 @@ export function App() {
     }
   });
   const [dataMessage, setDataMessage] = useState("");
+  const [submissions, setSubmissions] = useState(() => getLocalSubmissions());
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(() => {
     if (typeof window === "undefined") return "direct-relief";
@@ -2274,9 +2479,24 @@ export function App() {
     }
   }
 
+  async function reloadSubmissions(token = adminSession?.access_token) {
+    try {
+      const nextSubmissions = await loadSubmissions(token);
+      setSubmissions(nextSubmissions);
+    } catch (error) {
+      setDataMessage(`Submission load failed: ${error.message}`);
+    }
+  }
+
   useEffect(() => {
     reloadSupabaseOrganizations(adminSession?.access_token);
   }, [adminSession?.access_token]);
+
+  useEffect(() => {
+    if (adminUnlocked) {
+      reloadSubmissions(adminSession?.access_token);
+    }
+  }, [adminSession?.access_token, adminUnlocked]);
 
   async function unlockAdmin(credentials) {
     if (HAS_SUPABASE) {
@@ -2354,11 +2574,14 @@ export function App() {
           <AdminPage
             organizations={organizations}
             setOrganizations={setOrganizations}
+            submissions={submissions}
+            setSubmissions={setSubmissions}
             lang={lang}
             onLock={lockAdmin}
             adminSession={adminSession}
             dataMode={dataMode}
             onReload={() => reloadSupabaseOrganizations(adminSession?.access_token)}
+            onReloadSubmissions={() => reloadSubmissions(adminSession?.access_token)}
           />
         ) : (
           <AdminLogin lang={lang} onUnlock={unlockAdmin} />

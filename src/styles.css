@@ -956,11 +956,12 @@ dd {
   align-items: start;
   display: grid;
   gap: 18px;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: 300px minmax(0, 1fr) 360px;
 }
 
 .admin-list,
-.admin-editor {
+.admin-editor,
+.review-queue {
   background: white;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1158,6 +1159,81 @@ dd {
   padding-top: 18px;
 }
 
+.review-queue {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  position: sticky;
+  top: 102px;
+}
+
+.review-head {
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding-bottom: 14px;
+}
+
+.review-head h2 {
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.review-head p,
+.empty-review {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 5px 0 0;
+}
+
+.submission-list {
+  display: grid;
+  gap: 12px;
+  max-height: 68vh;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.submission-card {
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.submission-card h3 {
+  font-size: 16px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.submission-card p {
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+}
+
+.submission-card dl {
+  gap: 10px;
+}
+
+.submission-card dt {
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.submission-card dd {
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .site-footer {
   align-items: start;
   background: #101828;
@@ -1235,6 +1311,10 @@ dd {
   }
 
   .admin-list {
+    position: static;
+  }
+
+  .review-queue {
     position: static;
   }
 
