@@ -1,19 +1,19 @@
 :root {
-  color: #0f172a;
-  background: #f7f9fb;
+  color: #111827;
+  background: #f7f9fc;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #0f172a;
-  --muted: #5f6877;
-  --soft: #eef2f6;
-  --line: #d7dde6;
-  --blue: #0f172a;
-  --blue-dark: #0f172a;
-  --green: #2f6f46;
-  --green-bg: #c9f2d6;
+  --ink: #101828;
+  --muted: #5b6678;
+  --soft: #edf2f7;
+  --line: #d7dee8;
+  --blue: #155eef;
+  --blue-dark: #0b3b8f;
+  --green: #087443;
+  --green-bg: #dff7ea;
   --amber: #a15c07;
   --amber-bg: #fff2cf;
   --red: #c43333;
@@ -54,12 +54,14 @@ a {
 
 main {
   min-height: 100vh;
-  background: #f7f9fb;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(21, 94, 239, 0.05), transparent 32rem),
+    #f8fafc;
 }
 
 .site-header {
   align-items: center;
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid var(--line);
   display: grid;
   gap: 24px;
@@ -92,8 +94,7 @@ main {
 
 .brand strong {
   display: block;
-  font-size: 21px;
-  font-weight: 820;
+  font-size: 20px;
   line-height: 1.1;
 }
 
@@ -114,7 +115,7 @@ nav {
 nav button {
   background: transparent;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 3px solid transparent;
   cursor: pointer;
   font-weight: 650;
   padding: 0 2px;
@@ -122,15 +123,15 @@ nav button {
 }
 
 nav button.is-current {
-  border-color: var(--ink);
-  color: var(--ink);
+  border-color: var(--blue);
+  color: var(--blue);
 }
 
 .language {
   align-items: center;
-  background: #eef2f6;
+  background: #eef3fa;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   display: inline-flex;
   justify-self: end;
   padding: 3px;
@@ -139,7 +140,7 @@ nav button.is-current {
 .language button {
   background: transparent;
   border: 0;
-  border-radius: 0;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 750;
@@ -148,24 +149,23 @@ nav button.is-current {
 }
 
 .language button.is-active {
-  background: var(--ink);
+  background: #101828;
   color: white;
 }
 
 .hero {
   align-items: end;
   margin: 0 auto;
-  max-width: 1440px;
-  padding: 56px 48px 34px;
+  max-width: 1340px;
+  padding: 42px 48px 28px;
 }
 
 .eyebrow {
   align-items: center;
-  color: #497b5d;
+  color: #176346;
   display: flex;
-  font-size: 12px;
-  font-weight: 820;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 700;
   gap: 8px;
   margin: 0 0 16px;
 }
@@ -173,27 +173,27 @@ nav button.is-current {
 .hero h1,
 .info-page h1 {
   color: var(--ink);
-  font-size: clamp(42px, 5vw, 72px);
+  font-size: clamp(38px, 4vw, 58px);
   letter-spacing: 0;
   line-height: 1.02;
   margin: 0;
-  max-width: 940px;
+  max-width: 860px;
 }
 
 .hero-copy,
 .info-copy p {
-  color: #3f4652;
-  font-size: 20px;
-  line-height: 1.5;
+  color: #637083;
+  font-size: 18px;
+  line-height: 1.6;
   margin: 16px 0 0;
-  max-width: 760px;
+  max-width: 720px;
 }
 
 .draft-note {
   align-items: flex-start;
   background: #fff8df;
   border: 1px solid #f6d77a;
-  border-radius: 0;
+  border-radius: 8px;
   color: #6e4b00;
   display: flex;
   font-size: 13px;
@@ -213,16 +213,16 @@ nav button.is-current {
 
 .filters {
   display: grid;
-  gap: 24px;
+  gap: 16px;
   margin: 0 auto;
-  max-width: 1440px;
-  padding: 0 48px 40px;
+  max-width: 1340px;
+  padding: 0 48px 30px;
 }
 
 .filter-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 .filter,
@@ -230,25 +230,25 @@ nav button.is-current {
   align-items: center;
   background: white;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   cursor: pointer;
   display: inline-flex;
   font-weight: 750;
   gap: 10px;
-  min-height: 44px;
-  padding: 0 20px;
+  min-height: 46px;
+  padding: 0 18px;
 }
 
 .filter svg {
-  color: var(--ink);
+  color: var(--blue);
   height: 19px;
   width: 19px;
 }
 
 .filter.is-active,
 .primary-button {
-  background: #050505;
-  border-color: #050505;
+  background: var(--blue);
+  border-color: var(--blue);
   color: white;
 }
 
@@ -260,13 +260,13 @@ nav button.is-current {
   align-items: center;
   background: white;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   color: var(--muted);
   display: flex;
   gap: 10px;
-  max-width: 650px;
-  min-height: 64px;
-  padding: 0 18px;
+  max-width: 560px;
+  min-height: 46px;
+  padding: 0 14px;
 }
 
 .search svg {
@@ -294,11 +294,11 @@ nav button.is-current {
 
 .workspace {
   display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(0, 1fr) 430px;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   margin: 0 auto;
-  max-width: 1440px;
-  padding: 0 48px 70px;
+  max-width: 1540px;
+  padding: 0 40px 60px;
 }
 
 .listing,
@@ -306,56 +306,56 @@ nav button.is-current {
 .submit-form {
   background: white;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
 }
 
 .listing {
-  background: transparent;
-  border: 0;
-  display: grid;
-  gap: 18px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .listing-head,
 .org-row {
   column-gap: 16px;
   display: grid;
+  grid-template-columns:
+    minmax(150px, 1.05fr)
+    minmax(210px, 1.8fr)
+    minmax(154px, 0.8fr)
+    minmax(136px, 0.7fr)
+    minmax(154px, 0.8fr);
 }
 
 .listing-head {
-  display: none;
+  background: #fbfcfe;
+  border-bottom: 1px solid var(--line);
+  color: #344054;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0;
+  padding: 20px 28px;
 }
 
 .org-row {
-  align-items: start;
+  align-items: center;
   background: white;
-  border: 1px solid #dfe4ec;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
-  gap: 10px 26px;
-  grid-template-areas:
-    "name trust"
-    "help action"
-    "help donate";
-  grid-template-columns: minmax(0, 1fr) 170px;
-  min-height: 172px;
-  padding: 28px;
+  min-height: 124px;
+  padding: 24px 28px;
   text-align: left;
 }
 
 .org-row:last-of-type {
-  border-bottom: 1px solid #dfe4ec;
+  border-bottom: 0;
 }
 
 .org-row.is-selected {
-  background: white;
-  border-color: #aeb8c7;
-  box-shadow: inset 4px 0 0 var(--ink);
+  background: #f7fbff;
+  box-shadow: inset 3px 0 0 var(--blue);
 }
 
 .org-row:hover {
-  border-color: #aeb8c7;
-  background: #fcfdff;
+  background: #f9fbff;
 }
 
 .org-cell {
@@ -364,10 +364,9 @@ nav button.is-current {
 }
 
 .org-name {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
-  gap: 26px;
-  grid-area: name;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -377,28 +376,24 @@ nav button.is-current {
 
 .org-name strong {
   display: block;
-  font-size: 24px;
-  line-height: 1.12;
+  font-size: 16px;
+  line-height: 1.25;
 }
 
 .org-name small {
-  color: #3f4652;
+  color: var(--muted);
   display: block;
-  font-size: 12px;
-  font-weight: 780;
-  line-height: 1.45;
-  margin-top: 7px;
-  text-transform: uppercase;
+  font-size: 13px;
+  line-height: 1.55;
+  margin-top: 6px;
 }
 
 .help-cell {
-  color: #3f4652;
+  color: #344054;
   display: grid;
-  font-size: 17px;
-  gap: 16px;
-  grid-area: help;
-  line-height: 1.42;
-  padding-left: 116px;
+  font-size: 14px;
+  gap: 12px;
+  line-height: 1.68;
 }
 
 .help-copy {
@@ -407,19 +402,20 @@ nav button.is-current {
 
 .org-mark {
   align-items: center;
-  border-radius: 0;
+  border-radius: 14px;
   color: white;
   display: inline-flex;
   flex: 0 0 auto;
-  font-size: 26px;
+  font-size: 12px;
   font-weight: 850;
-  height: 90px;
+  height: 48px;
   justify-content: center;
-  width: 90px;
+  letter-spacing: 0;
+  width: 48px;
 }
 
 .mark-orange {
-  background: #f59e0b;
+  background: linear-gradient(135deg, #f97316, #fbbf24);
 }
 
 .mark-dark {
@@ -435,7 +431,7 @@ nav button.is-current {
 }
 
 .mark-gold {
-  background: #f2a31b;
+  background: linear-gradient(135deg, #f6c547, #c43d3d);
 }
 
 .mark-blue {
@@ -456,7 +452,7 @@ nav button.is-current {
   display: block;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: 6px;
   width: 100%;
 }
 
@@ -469,35 +465,34 @@ nav button.is-current {
 
 .region-label {
   align-items: center;
-  color: #5f6877;
+  color: #667085;
   display: inline-flex;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 750;
   line-height: 1.15;
   padding: 7px 0;
 }
 
 .tag {
-  background: #eceff3;
-  border-radius: 0;
-  color: #3f4652;
+  background: #edf1f6;
+  border-radius: 5px;
+  color: #415065;
   display: inline-flex;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.15;
-  padding: 7px 10px;
+  padding: 7px 9px;
 }
 
 .trust-badge {
   align-items: center;
-  border-radius: 0;
+  border-radius: 999px;
   display: inline-flex;
   font-size: 12px;
   font-weight: 760;
   gap: 7px;
   line-height: 1.2;
-  padding: 8px 12px;
-  text-transform: uppercase;
+  padding: 8px 11px;
   white-space: nowrap;
 }
 
@@ -506,14 +501,9 @@ nav button.is-current {
   width: 15px;
 }
 
-.org-row > .org-cell:nth-child(3) {
-  grid-area: trust;
-  justify-self: start;
-}
-
 .trust-verified,
 .trust-field {
-  background: #bdf0ca;
+  background: var(--green-bg);
   color: var(--green);
 }
 
@@ -530,29 +520,28 @@ nav button.is-current {
 .action-cell {
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-area: action;
+  gap: 10px;
 }
 
 .row-action,
 .donate-button,
 .detail-donate {
   align-items: center;
-  border-radius: 0;
+  border-radius: 8px;
   display: inline-flex;
   font-size: 13px;
   font-weight: 780;
   gap: 8px;
   justify-content: center;
-  min-height: 42px;
-  padding: 9px 14px;
+  min-height: 40px;
+  padding: 9px 10px;
   white-space: nowrap;
 }
 
 .row-action {
-  background: white;
-  border: 1px solid var(--ink);
-  color: var(--ink);
+  background: #edf4ff;
+  border: 1px solid #c7d7fe;
+  color: var(--blue);
   cursor: pointer;
   width: 100%;
 }
@@ -574,7 +563,7 @@ nav button.is-current {
   align-items: center;
   background: white;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   color: #667085;
   cursor: pointer;
   display: inline-flex;
@@ -616,7 +605,6 @@ nav button.is-current {
 .donate-cell {
   align-items: center;
   display: flex;
-  grid-area: donate;
 }
 
 .donate-button,
@@ -624,7 +612,6 @@ nav button.is-current {
   background: var(--green);
   border: 1px solid var(--green);
   color: white;
-  font-size: 15px;
   font-weight: 820;
   width: 100%;
 }
@@ -636,12 +623,11 @@ nav button.is-current {
 }
 
 .result-count {
-  background: transparent;
-  border-top: 0;
+  border-top: 1px solid var(--line);
   color: #667085;
   font-size: 13px;
   margin: 0;
-  padding: 0 2px;
+  padding: 17px 28px;
 }
 
 .empty-state {
@@ -651,7 +637,7 @@ nav button.is-current {
 
 .details {
   align-self: start;
-  padding: 28px;
+  padding: 26px;
   position: sticky;
   top: 102px;
 }
@@ -665,16 +651,16 @@ nav button.is-current {
 }
 
 .details h2 {
-  font-size: 30px;
-  line-height: 1.12;
-  margin: 0 0 18px;
+  font-size: 22px;
+  line-height: 1.2;
+  margin: 0 0 10px;
 }
 
 .icon-button {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 0;
+  border-radius: 8px;
   color: #667085;
   cursor: pointer;
   display: inline-flex;
@@ -695,19 +681,19 @@ nav button.is-current {
 }
 
 .detail-donate {
-  margin: 10px 0 28px;
-  min-height: 64px;
+  margin-bottom: 24px;
+  min-height: 44px;
 }
 
 dl {
   display: grid;
-  gap: 25px;
+  gap: 24px;
   margin: 0;
 }
 
 .detail-field {
   display: grid;
-  gap: 16px;
+  gap: 15px;
   grid-template-columns: 24px minmax(0, 1fr);
 }
 
@@ -727,8 +713,8 @@ dt {
 
 dd {
   color: #344054;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.68;
   margin: 0;
 }
 
@@ -772,7 +758,7 @@ dd {
 .info-grid article {
   background: white;
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   padding: 26px;
 }
 
@@ -815,7 +801,7 @@ dd {
 .submit-form input,
 .submit-form textarea {
   border: 1px solid var(--line);
-  border-radius: 0;
+  border-radius: 8px;
   color: var(--ink);
   outline: 0;
   padding: 12px 13px;
@@ -830,7 +816,7 @@ dd {
 
 .success {
   background: var(--green-bg);
-  border-radius: 0;
+  border-radius: 8px;
   color: var(--green);
   font-size: 14px;
   font-weight: 750;
@@ -840,7 +826,7 @@ dd {
 
 .form-error {
   background: #fff1f1;
-  border-radius: 0;
+  border-radius: 8px;
   color: #b42318;
   font-size: 14px;
   font-weight: 750;
@@ -1392,12 +1378,6 @@ dd {
   .org-row {
     display: grid;
     gap: 14px;
-    grid-template-areas:
-      "name"
-      "help"
-      "trust"
-      "action"
-      "donate";
     grid-template-columns: 1fr;
     min-height: 0;
     padding: 22px;
@@ -1405,29 +1385,6 @@ dd {
 
   .org-cell {
     padding-right: 0;
-  }
-
-  .org-name {
-    gap: 16px;
-  }
-
-  .org-mark {
-    font-size: 19px;
-    height: 68px;
-    width: 68px;
-  }
-
-  .org-name strong {
-    font-size: 21px;
-  }
-
-  .help-cell {
-    font-size: 15px;
-    padding-left: 0;
-  }
-
-  .org-row > .org-cell:nth-child(3) {
-    justify-self: stretch;
   }
 
   .row-action {
