@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
+  Baby,
   CalendarCheck,
   CheckCircle2,
   CircleDollarSign,
   ExternalLink,
   FileText,
-  Globe2,
   HandHeart,
   Heart,
   HeartHandshake,
   Link as LinkIcon,
   MapPin,
   PackageOpen,
+  PawPrint,
   Search,
   Share2,
   ShieldCheck,
@@ -30,7 +31,8 @@ const filters = [
   { id: "food", icon: PackageOpen },
   { id: "dropoff", icon: MapPin },
   { id: "volunteer", icon: Users },
-  { id: "europe", icon: Globe2 },
+  { id: "children", icon: Baby },
+  { id: "animal", icon: PawPrint },
   { id: "tax", icon: ShieldCheck },
 ];
 
@@ -43,15 +45,13 @@ const copy = {
       ways: "Ways to help",
       abroad: "For donors abroad",
       verify: "Verification process",
-      submit: "Submit",
+      submit: "Add organization",
     },
     heroTitle: "Verified ways to help Venezuela",
     heroText:
       "Compare donation, supply, volunteer, and community efforts with clear source links.",
     lastUpdated: "Last updated June 27, 2026",
     availableTo: "Available to",
-    draft:
-      "Starter research list: each listing uses source links. Confirm IRS status before publishing tax guidance.",
     filters: {
       all: "All",
       money: "Money donations",
@@ -59,7 +59,8 @@ const copy = {
       food: "Food + water",
       dropoff: "Local drop-offs",
       volunteer: "Volunteer",
-      europe: "Europe-friendly",
+      children: "Children help",
+      animal: "Animal help",
       tax: "US tax-deductible",
     },
     search: "Search by organization, help type, or region",
@@ -90,7 +91,7 @@ const copy = {
       liked: "Liked",
       share: "Share organization",
       copied: "Link copied",
-      submit: "Submit for review",
+      submit: "Add organization",
       clear: "Clear",
     },
     empty: "No listings match those filters yet.",
@@ -105,12 +106,15 @@ const copy = {
       verifyTitle: "How listings should be verified",
       verifyText:
         "A listing should show a current source, a clear aid route, a direct donation or sign-up link, and a last-checked date before it is promoted.",
-      submitTitle: "Suggest an organization",
+      submitTitle: "Add organization",
       submitText:
-        "Submissions go into review first. They should not appear publicly until source links, help type, and donation routes are checked.",
+        "Add an organization for review. It will not appear publicly until sources, help type, and donation routes are checked.",
     },
     form: {
+      submitter: "Who is submitting this information?",
+      submitterEmail: "Submitter email",
       name: "Organization name",
+      logo: "Organization logo URL",
       link: "Donation or sign-up link",
       help: "Type of help",
       region: "Who can use it?",
@@ -126,15 +130,13 @@ const copy = {
       ways: "Formas de ayudar",
       abroad: "Donantes afuera",
       verify: "Verificacion",
-      submit: "Enviar",
+      submit: "Agregar organizacion",
     },
     heroTitle: "Formas verificadas de ayudar a Venezuela",
     heroText:
       "Compara donaciones, insumos, voluntariado y esfuerzos comunitarios con fuentes claras.",
     lastUpdated: "Actualizado el 27 de junio de 2026",
     availableTo: "Disponible para",
-    draft:
-      "Lista inicial investigada: cada opcion usa fuentes. Confirmar IRS antes de publicar guias fiscales.",
     filters: {
       all: "Todo",
       money: "Donaciones",
@@ -142,7 +144,8 @@ const copy = {
       food: "Comida + agua",
       dropoff: "Centros de acopio",
       volunteer: "Voluntariado",
-      europe: "Desde Europa",
+      children: "Ayuda a ninos",
+      animal: "Ayuda animal",
       tax: "Deducible en EEUU",
     },
     search: "Buscar por organizacion, ayuda o region",
@@ -173,7 +176,7 @@ const copy = {
       liked: "Guardada",
       share: "Compartir organizacion",
       copied: "Enlace copiado",
-      submit: "Enviar a revision",
+      submit: "Agregar organizacion",
       clear: "Limpiar",
     },
     empty: "Todavia no hay opciones con esos filtros.",
@@ -188,12 +191,15 @@ const copy = {
       verifyTitle: "Como verificar una opcion",
       verifyText:
         "Cada opcion debe tener fuente reciente, ruta de ayuda clara, enlace directo y fecha de ultima revision.",
-      submitTitle: "Sugerir una organizacion",
+      submitTitle: "Agregar organizacion",
       submitText:
-        "Las sugerencias pasan primero por revision. No deben publicarse hasta verificar fuentes, tipo de ayuda y ruta de donacion.",
+        "Agrega una organizacion para revision. No aparecera publicamente hasta verificar fuentes, tipo de ayuda y ruta de donacion.",
     },
     form: {
+      submitter: "Quien envia esta informacion?",
+      submitterEmail: "Email de quien envia",
       name: "Nombre de la organizacion",
+      logo: "URL del logo de la organizacion",
       link: "Enlace de donacion o registro",
       help: "Tipo de ayuda",
       region: "Quien puede usarlo?",
@@ -425,7 +431,7 @@ const organizations = [
       en: "Emergency medical care, clean water, shelter, cash, and protection support.",
       es: "Atencion medica, agua limpia, refugio, efectivo y proteccion.",
     },
-    categories: ["money", "food", "medical", "tax", "europe"],
+    categories: ["money", "food", "medical", "children", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
     priority: 86,
@@ -566,7 +572,7 @@ const organizations = [
       en: "Emergency supplies, shelter, food, water, and child protection support.",
       es: "Insumos de emergencia, refugio, comida, agua y proteccion infantil.",
     },
-    categories: ["money", "food", "medical", "tax", "europe"],
+    categories: ["money", "food", "medical", "children", "tax", "europe"],
     regions: ["US", "Europe", "Global"],
     trust: "verified",
     priority: 82,
@@ -752,6 +758,8 @@ const organizations = [
 const helpCards = [
   ["money", "Cash donations", "Fastest path when the organization has a verified relief route."],
   ["medical", "Medical aid", "Best for hospitals, clinics, medicines, and emergency health supplies."],
+  ["children", "Children help", "Child protection, family support, education, nutrition, and psychosocial care."],
+  ["animal", "Animal help", "Rescue, veterinary care, shelter support, and supplies for animals affected by the emergency."],
   ["dropoff", "Supply drives", "Useful when accepted items, dates, addresses, and shipping proof are clear."],
   ["volunteer", "Volunteer work", "Sorting, driving, translating, outreach, and community coordination."],
 ];
@@ -789,6 +797,14 @@ function TrustBadge({ type, lang }) {
 }
 
 function OrganizationMark({ org }) {
+  if (org.logoUrl) {
+    return (
+      <span className="org-mark org-logo">
+        <img src={org.logoUrl} alt="" />
+      </span>
+    );
+  }
+
   return <span className={`org-mark ${org.mark}`}>{org.initials}</span>;
 }
 
@@ -910,10 +926,6 @@ function Directory({ lang, selectedFilter, setSelectedFilter, selectedId, setSel
           <h1>{t.heroTitle}</h1>
           <p className="hero-copy">{t.heroText}</p>
         </div>
-        <p className="draft-note">
-          <AlertCircle aria-hidden="true" />
-          {t.draft}
-        </p>
       </section>
 
       <section className="filters" aria-label="Directory filters">
@@ -1152,8 +1164,20 @@ function InfoPage({ page, lang }) {
           }}
         >
           <label>
+            {t.form.submitter}
+            <input required />
+          </label>
+          <label>
+            {t.form.submitterEmail}
+            <input required type="email" />
+          </label>
+          <label>
             {t.form.name}
             <input required />
+          </label>
+          <label>
+            {t.form.logo}
+            <input type="url" placeholder="https://" />
           </label>
           <label>
             {t.form.link}

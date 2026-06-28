@@ -149,9 +149,6 @@ nav button.is-current {
 
 .hero {
   align-items: end;
-  display: grid;
-  gap: 28px;
-  grid-template-columns: minmax(0, 1fr) 430px;
   margin: 0 auto;
   max-width: 1340px;
   padding: 42px 48px 28px;
@@ -436,6 +433,20 @@ nav button.is-current {
 
 .mark-green {
   background: #087443;
+}
+
+.org-logo {
+  background: white;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.org-logo img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  width: 100%;
 }
 
 .region-tags {
