@@ -1159,6 +1159,49 @@ dd {
   padding-top: 18px;
 }
 
+.csv-upload {
+  align-items: center;
+  background: #fbfcfe;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px;
+}
+
+.csv-upload h3 {
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0 0 4px;
+}
+
+.csv-upload p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.file-button {
+  flex: 0 0 auto;
+  gap: 8px;
+  position: relative;
+}
+
+.file-button input {
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
+}
+
+.file-button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .review-queue {
   display: grid;
   gap: 16px;
@@ -1401,6 +1444,15 @@ dd {
 
   .admin-editor-head {
     display: grid;
+  }
+
+  .csv-upload {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .file-button {
+    width: 100%;
   }
 
   .site-footer {

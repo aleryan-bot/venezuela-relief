@@ -7,6 +7,7 @@ import {
   CircleDollarSign,
   ExternalLink,
   FileText,
+  FileUp,
   HandHeart,
   Heart,
   HeartHandshake,
@@ -909,10 +910,172 @@ const FAVORITES_KEY = "venezuela-relief-liked-organizations";
 const POPULARITY_KEY = "venezuela-relief-local-popularity";
 
 function splitList(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+  if (!value) return [];
   return value
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (char === '"' && inQuotes && next === '"') {
+      value += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      row.push(value);
+      value = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(value);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      row = [];
+      value = "";
+      continue;
+    }
+
+    value += char;
+  }
+
+  row.push(value);
+  if (row.some((cell) => cell.trim())) rows.push(row);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.trim());
+  return rows.slice(1).map((cells) =>
+    Object.fromEntries(headers.map((header, index) => [header, (cells[index] || "").trim()])),
+  );
+}
+
+function parseCsvList(value) {
+  const clean = (value || "").trim();
+  if (!clean) return [];
+
+  if (clean.startsWith("{") && clean.endsWith("}")) {
+    return clean
+      .slice(1, -1)
+      .split(",")
+      .map((item) => item.trim().replace(/^"|"$/g, "").replace(/""/g, '"'))
+      .filter(Boolean);
+  }
+
+  return clean
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeHelpTypes(values) {
+  const mapped = new Set();
+  values.forEach((value) => {
+    const item = value.toLowerCase();
+    if (item.includes("medical") || item.includes("medicine") || item.includes("health")) mapped.add("medical");
+    if (item.includes("food") || item.includes("meal") || item.includes("water") || item.includes("wash")) mapped.add("food");
+    if (item.includes("cash") || item.includes("money") || item.includes("donation") || item.includes("grant")) mapped.add("money");
+    if (item.includes("drop") || item.includes("supply drive")) mapped.add("dropoff");
+    if (item.includes("volunteer") || item.includes("responder")) mapped.add("volunteer");
+    if (item.includes("child") || item.includes("children") || item.includes("famil")) mapped.add("children");
+    if (item.includes("animal") || item.includes("pet") || item.includes("veterinary")) mapped.add("animal");
+    if (item.includes("tax") || item.includes("501") || item.includes("deduct")) mapped.add("tax");
+  });
+  return Array.from(mapped);
+}
+
+function parseEvidenceLinksFromCsv(value) {
+  const clean = (value || "").trim();
+  if (!clean) return [];
+
+  try {
+    const parsed = JSON.parse(clean);
+    return parseEvidenceLinks(parsed);
+  } catch {
+    return parseCsvList(clean).map((href) => ({ label: "Source", href }));
+  }
+}
+
+function csvRowToOrganization(row) {
+  const name = row.display_name || row.name || row.organization_name || "New organization";
+  const sourceLinks = parseEvidenceLinksFromCsv(row.evidence_links || row.source_links || row.source_url);
+  const donationUrl = row.donation_url || row.donation_or_signup_url || "";
+  const links = [
+    ...sourceLinks,
+    donationUrl ? { label: "Donate", href: donationUrl } : null,
+  ].filter(Boolean);
+  const helpTypes = parseCsvList(row.help_types || row.categories);
+  const normalizedHelpTypes = normalizeHelpTypes(helpTypes);
+  const trust = dbToAppTrust[row.trust_level] || row.trust || "review";
+
+  return {
+    id: row.id || row.slug || slugify(name),
+    slug: row.slug || slugify(name),
+    name,
+    subtitle: {
+      en: row.legal_name || row.subtitle || "Relief organization",
+      es: row.legal_name || row.subtitle || "Organizacion de ayuda",
+    },
+    initials: getInitials(name),
+    mark: "mark-blue",
+    logoUrl: row.logo_url || "",
+    help: {
+      en: row.summary_en || row.help || "Relief organization.",
+      es: row.summary_es || row.summary_en || row.help || "Organizacion de ayuda.",
+    },
+    categories: normalizedHelpTypes.length ? normalizedHelpTypes : helpTypes,
+    regions: parseCsvList(row.donor_regions || row.regions),
+    trust,
+    status: row.status || "review",
+    priority: Number(row.priority_score || row.priority || 50) || 50,
+    priorityNote: row.priority_note || row.priorityNote || "",
+    action: donationUrl ? "Donate" : "Details",
+    details: {
+      what: {
+        en: row.what_they_do_en || row.summary_en || "",
+        es: row.what_they_do_es || row.what_they_do_en || row.summary_es || row.summary_en || "",
+      },
+      who: {
+        en: row.who_can_help_en || "",
+        es: row.who_can_help_es || row.who_can_help_en || "",
+      },
+      tax: {
+        en: row.ein
+          ? `US tax status: ${row.us_tax_status || "unknown"}. EIN: ${row.ein}. Confirm in IRS records before publishing.`
+          : `US tax status: ${row.us_tax_status || "unknown"}. Confirm before publishing.`,
+        es: row.ein
+          ? `Estatus fiscal EEUU: ${row.us_tax_status || "unknown"}. EIN: ${row.ein}. Confirmar en IRS antes de publicar.`
+          : `Estatus fiscal EEUU: ${row.us_tax_status || "unknown"}. Confirmar antes de publicar.`,
+      },
+      route: {
+        en: row.aid_route_en || row.where_aid_goes || "",
+        es: row.aid_route_es || row.aid_route_en || row.where_aid_goes || "",
+      },
+      risk: {
+        en: row.risk_notes_en || "",
+        es: row.risk_notes_es || row.risk_notes_en || "",
+      },
+      checked: formatCheckedDate(row.last_checked),
+      links,
+    },
+  };
 }
 
 function joinList(items) {
@@ -1218,6 +1381,17 @@ async function saveSupabaseOrganization(org, token) {
     prefer: "return=representation",
   });
   return fromSupabaseOrganization(rows[0]);
+}
+
+async function upsertSupabaseOrganizations(orgs, token) {
+  const payload = orgs.map(toSupabaseOrganization);
+  const rows = await supabaseRequest("/rest/v1/organizations?on_conflict=slug&select=*", {
+    method: "POST",
+    token,
+    body: payload,
+    prefer: "resolution=merge-duplicates,return=representation",
+  });
+  return rows.map(fromSupabaseOrganization);
 }
 
 async function deleteSupabaseOrganization(org, token) {
@@ -1934,6 +2108,7 @@ function AdminPage({
   const [message, setMessage] = useState("");
   const [importText, setImportText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isImportingCsv, setIsImportingCsv] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
 
   useEffect(() => {
@@ -2079,6 +2254,50 @@ function AdminPage({
       setMessage("Imported JSON into local CMS data.");
     } catch {
       setMessage("Import failed. Paste JSON exported from this CMS.");
+    }
+  }
+
+  async function importCsvFile(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setIsImportingCsv(true);
+
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      const imported = rows
+        .map(csvRowToOrganization)
+        .filter((org) => org.name && org.name !== "New organization");
+
+      if (!imported.length) {
+        throw new Error("No organization rows found.");
+      }
+
+      if (dataMode === "supabase" && adminSession?.access_token) {
+        const saved = await upsertSupabaseOrganizations(imported, adminSession.access_token);
+        setOrganizations((current) => {
+          const bySlug = new Map(current.map((org) => [org.slug || slugify(org.name), org]));
+          saved.forEach((org) => bySlug.set(org.slug || slugify(org.name), org));
+          return Array.from(bySlug.values()).sort((a, b) => (b.priority || 0) - (a.priority || 0));
+        });
+        setSelectedId(saved[0]?.id || selectedId);
+        setMessage(`Imported ${saved.length} organizations to Supabase from CSV.`);
+        return;
+      }
+
+      setOrganizations((current) => {
+        const bySlug = new Map(current.map((org) => [org.slug || slugify(org.name), org]));
+        imported.forEach((org) => bySlug.set(org.slug || slugify(org.name), org));
+        return Array.from(bySlug.values()).sort((a, b) => (b.priority || 0) - (a.priority || 0));
+      });
+      setSelectedId(imported[0]?.id || selectedId);
+      setMessage(`Imported ${imported.length} organizations locally from CSV.`);
+    } catch (error) {
+      setMessage(`CSV import failed: ${error.message}`);
+    } finally {
+      setIsImportingCsv(false);
     }
   }
 
@@ -2323,6 +2542,22 @@ function AdminPage({
           </label>
 
           <div className="admin-import">
+            <div className="csv-upload">
+              <div>
+                <h3>Upload CSV</h3>
+                <p>Use the organization CSV template. Existing rows update by slug; rows marked approved show publicly.</p>
+              </div>
+              <label className={`secondary-button file-button ${isImportingCsv ? "is-disabled" : ""}`}>
+                <FileUp aria-hidden="true" />
+                {isImportingCsv ? "Importing..." : "Upload CSV"}
+                <input
+                  accept=".csv,text/csv"
+                  disabled={isImportingCsv}
+                  onChange={importCsvFile}
+                  type="file"
+                />
+              </label>
+            </div>
             <label>
               Import JSON
               <textarea
